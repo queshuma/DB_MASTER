@@ -3,6 +3,7 @@ package org.shuzhi.library.MapStruct;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;
+import org.mapstruct.factory.Mappers;
 import org.shuzhi.library.Service.DatabaseMetadataService;
 import org.shuzhi.library.PO.TableInfoPO;
 
@@ -16,7 +17,7 @@ import org.shuzhi.library.PO.TableInfoPO;
  */
 @Mapper
 public interface TableInfoMapstruct {
-    TableInfoMapstruct INSTANCE = org.mapstruct.factory.Mappers.getMapper(TableInfoMapstruct.class);
+    TableInfoMapstruct INSTANCE = Mappers.getMapper(TableInfoMapstruct.class);
 
     @Mappings({
             @Mapping(target = "id", ignore = true),

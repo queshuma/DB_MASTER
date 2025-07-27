@@ -18,20 +18,20 @@ public class DatabaseMetadataController {
     @Autowired
     private DatabaseMetadataService metadataService;
 
-    @PostMapping("/tables")
-    public List<String> getTables(@RequestBody DatabaseConfig config) throws SQLException, ClassNotFoundException {
-        return metadataService.getTableNames(config);
-    }
-
-    @PostMapping("/columns")
-    public Map<String, List<DatabaseMetadataService.ColumnInfo>> getColumns(@RequestBody DatabaseConfig config)
-            throws SQLException, ClassNotFoundException {
-        return metadataService.getTableColumns(config);
-    }
-
-    @PostMapping("/checkColumns")
-    public Map<String, List<DatabaseMetadataService.ColumnInfo>> checkColumns(@RequestBody DatabaseConfig config)
-            throws SQLException, ClassNotFoundException {
-        return metadataService.checkColumns(config);
-    }
+//    @PostMapping("/tables")
+//    public List<String> getTables(@RequestBody DatabaseConfig config) throws SQLException, ClassNotFoundException {
+//        return metadataService.getTableNames(config);
+//    }
+//
+//    @PostMapping("/columns")
+//    public Map<String, List<DatabaseMetadataService.ColumnInfo>> getColumns(@RequestBody DatabaseConfig config)
+//            throws SQLException, ClassNotFoundException {
+//        return metadataService.getTableColumns(config);
+//    }
+//
+//    @PostMapping("/checkColumns")
+//    public Map<String, List<DatabaseMetadataService.ColumnInfo>> checkColumns(@RequestBody DatabaseConfig config)
+//            throws SQLException, ClassNotFoundException {
+//        return metadataService.checkColumns(config);
+//    }
 }
