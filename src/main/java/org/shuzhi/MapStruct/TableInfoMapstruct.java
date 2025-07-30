@@ -1,11 +1,11 @@
-package org.shuzhi.library.MapStruct;
+package org.shuzhi.MapStruct;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;
 import org.mapstruct.factory.Mappers;
-import org.shuzhi.library.Service.DatabaseMetadataService;
-import org.shuzhi.library.PO.TableInfoPO;
+import org.shuzhi.Service.DatabaseMetadataService;
+import org.shuzhi.PO.TableInfoPO;
 
 /**
  * <p>

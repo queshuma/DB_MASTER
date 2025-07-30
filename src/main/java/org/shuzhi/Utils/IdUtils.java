@@ -1,4 +1,4 @@
-package org.shuzhi.library.Utils;
+package org.shuzhi.Utils;
 
 import org.springframework.stereotype.Component;
 

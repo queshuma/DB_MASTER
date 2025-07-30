@@ -1,4 +1,4 @@
-package org.shuzhi.library.Utils;
+package org.shuzhi.Utils;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.springframework.stereotype.Component;

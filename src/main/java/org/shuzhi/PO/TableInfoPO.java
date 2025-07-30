@@ -1,4 +1,4 @@
-package org.shuzhi.library.PO;
+package org.shuzhi.PO;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Getter;

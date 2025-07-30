@@ -1,4 +1,4 @@
-package org.shuzhi.library.Controller;
+package org.shuzhi.Controller;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor;
@@ -35,6 +35,8 @@ public class UserChatController {
                    - 根据用户需求生成各种类型的SQL语句
                    - 包括CREATE TABLE、ALTER TABLE、INSERT、UPDATE等
                    - 确保生成的SQL符合标准语法并适用于目标数据库系统
+                4. 查询数据库种的数据表：
+                   - 根据用户提供的数据库连接信息，查询数据表库下的表
                                 
                 在提供服务时，你应该：
                 - 准确理解用户需求，明确用户想要操作的数据库表
@@ -48,12 +50,12 @@ public class UserChatController {
                 .defaultAdvisors(
                         new PromptChatMemoryAdvisor(chatMemory)
                 )
-                .defaultFunctions("cancelBooking")
+                .defaultFunctions("getDatabaseConfig", "saveTableColumns", "getDataTableList")
                 .build();
     }
 
     @GetMapping(value = "/ai/generateStreamAsString", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> generateStreamAsString(@RequestParam(value = "message", defaultValue = "讲个笑话") String message) {
+    public Flux<String> generateStreamAsString(@RequestParam(value = "message", defaultValue = "") String message) {
         Flux<String> content =  this.chatClient.prompt()
                 .user(message)
                 .system(promptSystemSpec -> promptSystemSpec.param("current_date", LocalDate.now()))

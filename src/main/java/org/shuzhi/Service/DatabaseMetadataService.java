@@ -1,4 +1,4 @@
-package org.shuzhi.library.Service;
+package org.shuzhi.Service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson2.JSONArray;
@@ -6,13 +6,18 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.Getter;
 import lombok.Setter;
 import okhttp3.*;
-import org.shuzhi.library.Config.DatabaseConfig;
-import org.shuzhi.library.MapStruct.TableInfoMapstruct;
-import org.shuzhi.library.Mapper.TableInfoMapper;
-import org.shuzhi.library.PO.TableInfoPO;
-import org.shuzhi.library.Utils.IdUtils;
+import org.shuzhi.Config.TableInfo;
+import org.shuzhi.MapStruct.TableInfoMapstruct;
+import org.shuzhi.Mapper.TableInfoMapper;
+import org.shuzhi.PO.TableInfoPO;
+import org.shuzhi.Utils.IdUtils;
+import org.shuzhi.Config.DatabaseConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Description;
+
+import java.net.SocketException;
+import java.util.*;
+import java.util.Date;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
 
@@ -20,11 +25,6 @@ import java.io.IOException;
 import java.sql.*;
 import java.sql.Connection;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -49,38 +49,96 @@ public class DatabaseMetadataService {
                 String tableName = tables.getString("TABLE_NAME");
                 tableNames.add(tableName);
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         return tableNames;
     }
 
-    @Bean
-    @Description("根据编号查询数据库")
-    public DatabaseConfig getDatabaseConfig() {
-        DatabaseConfig config = new DatabaseConfig();
-        config.setUrl("jdbc:mysql://49.232.61.41:3306/work_manager?useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai");
-        config.setUsername("root");
-        config.setPassword("123456");
-        config.setDriverClassName("com.mysql.cj.jdbc.Driver");
-        return config;
+    public List<TableInfo> getTableInfo(DatabaseConfig config) throws SQLException, ClassNotFoundException {
+
+        List<TableInfo> tableInfos = new ArrayList<>();
+        try (Connection connection = getConnection(config)) {
+            DatabaseMetaData metaData = connection.getMetaData();
+
+            // 获取表信息(参数说明：catalog, schemaPattern, tableNamePattern, types[])
+            try (ResultSet tables = metaData.getTables(config.getDatabaseName(), null, null, new String[]{"TABLE"})) {
+                while (tables.next()) {
+                    TableInfo tableInfo = new TableInfo();
+                    tableInfo.setTableName(tables.getString("TABLE_NAME"));
+                    tableInfo.setTableType(tables.getString("TABLE_TYPE"));
+                    tableInfo.setRemarks(tables.getString("REMARKS"));
+                    tableInfo.setTypeCat(tables.getString("TYPE_CAT"));
+                    tableInfo.setTypeSchem(tables.getString("TYPE_SCHEM"));
+                    tableInfo.setTypeName(tables.getString("TYPE_NAME"));
+                    tableInfo.setSelfReferencingColName(tables.getString("SELF_REFERENCING_COL_NAME"));
+                    tableInfo.setRefGeneration(tables.getString("REF_GENERATION"));
+                    tableInfos.add(tableInfo);
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return tableInfos;
     }
 
-    public record SaveTableColumns(Map<String, List<ColumnInfo>> columns) {
+    @Bean
+    @Description("数据库列表")
+    public Function<Object, List<DatabaseConfig>> getDatabaseList() {
+        return input -> {
+            DatabaseConfig config = new DatabaseConfig();
+            config.setId(Integer.valueOf(1));
+            config.setUrl("jdbc:mysql://49.232.61.41:3306/work_manager_sys?useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai");;
+            config.setUsername("root");
+            config.setPassword("123456");
+            config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+            return Arrays.asList(config);
+        };
+    }
+
+    @Bean
+    @Description("根据编号查询数据库")
+    public Function<String, DatabaseConfig> getDatabaseConfig() {
+        return input -> {
+            DatabaseConfig config = new DatabaseConfig();
+            config.setUrl("jdbc:mysql://49.232.61.41:3306/work_manager_sys?useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai");
+            config.setUsername("root");
+            config.setPassword("Secure!2024");
+            config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+            return config;
+        };
+    }
+
+    @Bean
+    @Description("根据数据库查询表")
+    public Function<DatabaseConfig, List<TableInfo>> getDataTableList() {
+        return input -> {
+            try {
+                return this.getTableInfo(input);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        };
     }
 
     /**
      * 保存指定的数据库信息
-     * @param config
+     * @param
      * @return
      * @throws SQLException
      * @throws ClassNotFoundException
      */
+
     @Bean
     @Description("保存数据表字段信息")
-    public Function<SaveTableColumns, Map<String, List<ColumnInfo>>> saveTableColumns(DatabaseConfig config) throws SQLException, ClassNotFoundException {
+    public Function<DatabaseConfig, Map<String, List<ColumnInfo>>> saveTableColumns() throws SQLException, ClassNotFoundException {
         return input -> {
+            DatabaseConfig config = input;;
             Map<String, List<ColumnInfo>> tableColumns = new HashMap<>();
-            List<String> tableNames = null;
+            List<String> tableNames;
             try {
                 tableNames = this.getTableNames(config);
             } catch (SQLException e) {
@@ -117,12 +175,13 @@ public class DatabaseMetadataService {
                 throw new RuntimeException("保存表字段信息时发生错误", e);
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException(e);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
             return tableColumns;
         };
     }
 
-    @Bean
     @Description("检查字段区别")
     public Map<String, List<ColumnInfo>> checkColumns(DatabaseConfig config) throws SQLException, ClassNotFoundException {
         Map<String, List<ColumnInfo>> tableColumns = new HashMap<>();
@@ -182,6 +241,8 @@ public class DatabaseMetadataService {
                 }
                 tableColumns.put(tableName, columns);
             }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
         return tableColumns;
     }
@@ -205,16 +266,20 @@ public class DatabaseMetadataService {
         return String.valueOf(tableInfoPO.getId());
     }
 
-    private Connection getConnection(DatabaseConfig config) throws SQLException, ClassNotFoundException {
+    private Connection getConnection(DatabaseConfig config) throws Exception {
         // 加载驱动类
         Class.forName(config.getDriverClassName());
 
-        // 创建连接
-        return DriverManager.getConnection(
-                config.getUrl(),
-                config.getUsername(),
-                config.getPassword()
-        );
+        try {
+            // 创建连接
+            return DriverManager.getConnection(
+                    config.getUrl(),
+                    config.getUsername(),
+                    config.getPassword()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("数据库连接失败，请检查数据库配置" + e);
+        }
     }
 
     @Setter

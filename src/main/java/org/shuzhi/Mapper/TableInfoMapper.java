@@ -1,8 +1,8 @@
-package org.shuzhi.library.Mapper;
+package org.shuzhi.Mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
-import org.shuzhi.library.PO.TableInfoPO;
+import org.shuzhi.PO.TableInfoPO;
 
 /**
  * <p>

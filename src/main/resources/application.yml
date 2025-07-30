@@ -1,17 +1,21 @@
 server:
   port: 8000
-nacos:
-  config:
-    server-addr: 49.232.61.41:8848
-    username: nacos
-    password: nacos
-    data-id: work_manager_config.yml
-    group: DEFAULT_GROUP
-  client:
-    grpc-check: false
 spring:
   application:
-    name: work_manager_config
+    name: DB_Master
+    config: db_master_config
+  cloud:
+    nacos:
+      config:
+        server-addr: 49.232.61.41:8848
+        username: nacos
+        password: nacos
+        file-extension: yml
+        context-path: /nacos
+        refresh-enabled: true
+        enabled: true
+  config:
+    import: nacos:${spring.application.config}.${spring.cloud.nacos.config.file-extension}
   ai:
     dashscope:
       api-key: sk-56e446c369a241eabd8d2b171ed5bc83
@@ -27,7 +31,7 @@ springdoc:
   group-configs:
     - group: 'default'
       paths-to-match: '/**'
-      packages-to-scan: org.shuzhi.library.Controller
+      packages-to-scan: org.shuzhi.Controller
 # knife4j的增强配置，不需要增强可以不配
 knife4j:
   enable: true

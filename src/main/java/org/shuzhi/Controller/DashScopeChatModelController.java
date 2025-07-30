@@ -1,4 +1,4 @@
-package org.shuzhi.library.Controller;
+package org.shuzhi.Controller;
 
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import jakarta.servlet.http.HttpServletResponse;
