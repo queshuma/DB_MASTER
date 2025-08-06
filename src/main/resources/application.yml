@@ -40,4 +40,13 @@ knife4j:
     enable: true
     username: admin
     password: admin
-
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+logging:
+  level:
+    # 打印MyBatis-Plus的SQL语句
+    com.baomidou.mybatisplus: debug
+    # 打印你项目Mapper接口的SQL语句
+    org.shuzhi.Mapper: debug

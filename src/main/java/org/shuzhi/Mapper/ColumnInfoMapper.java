@@ -2,10 +2,9 @@ package org.shuzhi.Mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.Mappings;
 import org.mapstruct.factory.Mappers;
-import org.shuzhi.PO.TableInfoPO;
+import org.shuzhi.Dto.ColumnInfo;
+import org.shuzhi.PO.ColumnInfoPO;
 
 import java.sql.ResultSet;
 
@@ -18,6 +17,6 @@ import java.sql.ResultSet;
  * @since 2025-06-29
  */
 @Mapper
-public interface TableInfoMapper extends BaseMapper<TableInfoPO> {
+public interface ColumnInfoMapper extends BaseMapper<ColumnInfoPO> {
 
 }

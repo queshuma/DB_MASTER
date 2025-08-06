@@ -3,23 +3,29 @@ package org.shuzhi.Service;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson2.JSONArray;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import lombok.Getter;
-import lombok.Setter;
 import okhttp3.*;
 import org.shuzhi.Config.TableInfo;
-import org.shuzhi.MapStruct.TableInfoMapstruct;
+import org.shuzhi.Dto.ColumnInfo;
+import org.shuzhi.Dto.CreateProjectDTO;
+import org.shuzhi.Dto.ProjectBaseDTO;
+import org.shuzhi.Mapper.ColumnInfoMapper;
+import org.shuzhi.Mapper.ProjectInfoMapper;
 import org.shuzhi.Mapper.TableInfoMapper;
+import org.shuzhi.Mapstruct.ColumnInfoMapstruct;
+import org.shuzhi.Mapstruct.ProjectInfoMapstruct;
+import org.shuzhi.Mapstruct.TableInfoMapstruct;
+import org.shuzhi.PO.ColumnInfoPO;
+import org.shuzhi.PO.ProjectPO;
 import org.shuzhi.PO.TableInfoPO;
-import org.shuzhi.Utils.IdUtils;
 import org.shuzhi.Config.DatabaseConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Description;
 
-import java.net.SocketException;
 import java.util.*;
 import java.util.Date;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.sql.*;
@@ -32,8 +38,14 @@ import java.util.stream.Collectors;
 public class DatabaseMetadataService {
     private final TableInfoMapper tableInfoMapper;
 
-    public DatabaseMetadataService(TableInfoMapper tableInfoMapper) {
+    private final ProjectInfoMapper projectInfoMapper;
+
+    private final ColumnInfoMapper columnInfoMapper;
+
+    public DatabaseMetadataService(TableInfoMapper tableInfoMapper, ProjectInfoMapper projectInfoMapper, ColumnInfoMapper columnInfoMapper) {
         this.tableInfoMapper = tableInfoMapper;
+        this.projectInfoMapper = projectInfoMapper;
+        this.columnInfoMapper = columnInfoMapper;
     }
 
     public List<String> getTableNames(DatabaseConfig config) throws SQLException, ClassNotFoundException {
@@ -84,30 +96,37 @@ public class DatabaseMetadataService {
     }
 
     @Bean
-    @Description("数据库列表")
-    public Function<Object, List<DatabaseConfig>> getDatabaseList() {
+    @Description("创建项目")
+    public Function<CreateProjectDTO, String> createProject() {
         return input -> {
-            DatabaseConfig config = new DatabaseConfig();
-            config.setId(Integer.valueOf(1));
-            config.setUrl("jdbc:mysql://49.232.61.41:3306/work_manager_sys?useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai");;
-            config.setUsername("root");
-            config.setPassword("123456");
-            config.setDriverClassName("com.mysql.cj.jdbc.Driver");
-            return Arrays.asList(config);
+            projectInfoMapper.insert(ProjectInfoMapstruct.INSTANCE.createToProjectPO(input));
+            return input.getProjectName();
         };
     }
 
     @Bean
-    @Description("根据编号查询数据库")
-    public Function<String, DatabaseConfig> getDatabaseConfig() {
+    @Description("查询项目列表")
+    public Function<Object, List<ProjectBaseDTO>> getProjectList() {
         return input -> {
-            DatabaseConfig config = new DatabaseConfig();
-            config.setUrl("jdbc:mysql://49.232.61.41:3306/work_manager_sys?useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai");
-            config.setUsername("root");
-            config.setPassword("Secure!2024");
-            config.setDriverClassName("com.mysql.cj.jdbc.Driver");
-            return config;
+            List<ProjectPO> projectPOList = projectInfoMapper.selectList(new LambdaQueryWrapper<>());
+            if (projectPOList.isEmpty()) {new ArrayList<>();}
+            return ProjectInfoMapstruct.INSTANCE.toProjectDTOList(projectPOList);
         };
+    }
+
+    @Bean
+    @Description("根据编号或名称查询数据库信息")
+    public Function<ProjectBaseDTO, ProjectBaseDTO> getProjectDataBase() {
+        return input -> ProjectInfoMapstruct.INSTANCE.toProjectDatabaseDTO(projectInfoMapper.selectOne(new LambdaQueryWrapper<ProjectPO>()
+                .eq(!Objects.isNull(input.getId()), ProjectPO::getId, input.getId())
+                .eq(!Objects.isNull(input.getProjectName()), ProjectPO::getProjectName, input.getProjectName()))
+        );
+    }
+
+    @Bean
+    @Description("根据编号或名称查询备份版本")
+    public Function<Object, List<ProjectBaseDTO>> getProjectHistory() {
+        return input -> ProjectInfoMapstruct.INSTANCE.toProjectDTOList(projectInfoMapper.selectList(new LambdaQueryWrapper<>()));
     }
 
     @Bean
@@ -128,169 +147,87 @@ public class DatabaseMetadataService {
      * 保存指定的数据库信息
      * @param
      * @return
-     * @throws SQLException
      * @throws ClassNotFoundException
      */
 
     @Bean
     @Description("保存数据表字段信息")
-    public Function<DatabaseConfig, Map<String, List<ColumnInfo>>> saveTableColumns() throws SQLException, ClassNotFoundException {
+    @Transactional(rollbackFor = Exception.class)
+    public Function<DatabaseConfig, List<String>> backupData() {
         return input -> {
-            DatabaseConfig config = input;;
-            Map<String, List<ColumnInfo>> tableColumns = new HashMap<>();
-            List<String> tableNames;
-            try {
-                tableNames = this.getTableNames(config);
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            } catch (ClassNotFoundException e) {
-                throw new RuntimeException(e);
-            }
-
+            // 返回内容
+            List<String> result = new ArrayList<>();
+            DatabaseConfig config = input;
             try (Connection connection = getConnection(config)) {
                 DatabaseMetaData metaData = connection.getMetaData();
 
-                for (String tableName : tableNames) {
-                    List<ColumnInfo> columns = new ArrayList<>();
+                List<TableInfo> tableInfos = new ArrayList<>();
 
-                    // 获取列信息
-                    try (ResultSet columnsResult = metaData.getColumns(config.getDatabaseName(), null, tableName, null)) {
+                try (ResultSet tables = metaData.getTables(config.getDatabaseName(), null, null, new String[]{"TABLE"})) {
+                    while (tables.next()) {
+//                        TableInfoPO tableInfoPO = TableInfoMapstruct.INSTANCE.toTableInfoPO(tables);
+                        TableInfoPO tableInfoPO = new TableInfoPO();
 
-                        while (columnsResult.next()) {
-                            ColumnInfo column = new ColumnInfo();
-                            column.setColumnName(columnsResult.getString("COLUMN_NAME"));
-                            column.setTypeName(columnsResult.getString("TYPE_NAME"));
-                            column.setColumnSize(columnsResult.getInt("COLUMN_SIZE"));
-                            column.setNullable(columnsResult.getInt("NULLABLE") == DatabaseMetaData.columnNullable);
-                            column.setRemarks(columnsResult.getString("REMARKS"));
+                        tableInfoPO.setTableName(tables.getString("TABLE_NAME"));
+//                        tableInfoPO.set(tables.getString("TABLE_TYPE"));
+                        tableInfoPO.setDescription(tables.getString("REMARKS"));
+                        tableInfoPO.setCharset(tables.getString("TYPE_CAT"));
+                        tableInfoPO.setSourceId(input.getId());
+//                        tableInfoPO.setEngine(tables.getString("TYPE_SCHEM"));
+//                        tableInfoPO.setTypeName(tables.getString("TYPE_NAME"));
+//                        tableInfoPO.setSelfReferencingColName(tables.getString("SELF_REFERENCING_COL_NAME"));
+//                        tableInfoPO.setRefGeneration(tables.getString("REF_GENERATION"));
+                        result.add(tableInfoPO.getTableName());
+                        tableInfoMapper.insert(tableInfoPO);
+                        try (ResultSet columnsResult = metaData.getColumns(config.getDatabaseName(), null, tableInfoPO.getTableName(), null)) {
+                            while (columnsResult.next()) {
+                                ColumnInfo column = new ColumnInfo();
+                                column.setColumnName(columnsResult.getString("COLUMN_NAME"));
+                                column.setTypeName(columnsResult.getString("TYPE_NAME"));
+                                column.setColumnSize(columnsResult.getInt("COLUMN_SIZE"));
+                                column.setNullable(columnsResult.getInt("NULLABLE") == DatabaseMetaData.columnNullable);
+                                column.setRemarks(columnsResult.getString("REMARKS"));
 
-                            columns.add(column);
-                            this.saveTableColumns(tableName, column);
+//                                columns.add(column);
+                                this.saveTableColumns(tableInfoPO.getId(), tableInfoPO.getTableName(), column);
+                            }
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
                         }
                     }
-
-                    tableColumns.put(tableName, columns);
                 }
             } catch (SQLException e) {
-                throw new RuntimeException("保存表字段信息时发生错误", e);
+                throw new RuntimeException(e);
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException(e);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
             }
-            return tableColumns;
+            return result;
         };
-    }
-
-    @Description("检查字段区别")
-    public Map<String, List<ColumnInfo>> checkColumns(DatabaseConfig config) throws SQLException, ClassNotFoundException {
-        Map<String, List<ColumnInfo>> tableColumns = new HashMap<>();
-        List<String> tableNames = getTableNames(config);
-
-        List<Integer> version = tableInfoMapper.selectObjs(new LambdaQueryWrapper<TableInfoPO>().select(TableInfoPO::getVersion));
-        List<TableInfoPO> tableInfoPOList;
-        if (version.isEmpty()) {
-            return null;
-        } else {
-            tableInfoPOList = tableInfoMapper.selectList(new LambdaQueryWrapper<TableInfoPO>().eq(TableInfoPO::getVersion, version.get(0)));
-        }
-
-
-        try (Connection connection = getConnection(config)) {
-            DatabaseMetaData metaData = connection.getMetaData();
-
-            for (String tableName : tableNames) {
-                List<ColumnInfo> columns = new ArrayList<>();
-
-                // 获取列信息
-                ResultSet columnsResult = metaData.getColumns(config.getDatabaseName(), null, tableName, null);
-                List<TableInfoPO> existColumn  = tableInfoPOList.stream().filter(t -> t.getTableName().equals(tableName)).collect(Collectors.toList());
-
-                ColumnInfo column = new ColumnInfo();
-                column.setErrorRemarks(tableName + "表 以下字段有更新:");
-                while (columnsResult.next()) {
-                    column.setColumnName(columnsResult.getString("COLUMN_NAME"));
-                    column.setTypeName(columnsResult.getString("TYPE_NAME"));
-                    column.setColumnSize(columnsResult.getInt("COLUMN_SIZE"));
-                    column.setNullable(columnsResult.getInt("NULLABLE") == DatabaseMetaData.columnNullable);
-                    column.setRemarks(columnsResult.getString("REMARKS"));
-
-                    if (existColumn.stream().filter(t -> t.getColumnName().equals(column.getColumnName())).count() == 1) {
-                        TableInfoPO tableInfoPO = existColumn.stream().filter(t -> t.getColumnName().equals(column.getColumnName())).collect(Collectors.toList()).get(0);
-                        if (!tableInfoPO.getTypeName().equals(column.getTypeName())) {
-                            column.setErrorRemarks(column.getErrorRemarks() + " " + column.getColumnName() + " 字段'类型'有变化,调整为" + column.getTypeName());
-                        }
-                        if (!tableInfoPO.getColumnSize().equals(column.getColumnSize())) {
-                            column.setErrorRemarks(column.getErrorRemarks() + " " + column.getColumnName() +  " 字段'长度'有变化,调整为" + column.getColumnSize());
-                        }
-                        if (!tableInfoPO.getRemarks().equals(column.getRemarks())) {
-                            column.setErrorRemarks(column.getErrorRemarks() + " " + column.getColumnName() +  " 字段'备注'有变化,调整为" + column.getRemarks());
-                        }
-                        if (!tableInfoPO.getNullable().equals(column.getNullable())) {
-                            column.setErrorRemarks(column.getErrorRemarks() + " " + column.getColumnName() +  " 字段'是否为空'有变化,调整为" + column.getNullable());
-                        }
-                        if (column.getErrorRemarks().equals(tableInfoPO.getColumnName() + "表 以下字段有更新:")) {
-                            break;
-                        } else {
-                            columns.add(column);
-                        }
-                    } else {
-                        column.setErrorRemarks("新增字段;");
-                        columns.add(column);
-                    }
-                }
-                tableColumns.put(tableName, columns);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return tableColumns;
     }
 
     /**
      * 插入当前数据库表结构
      */
-    public String saveTableColumns(String tableName, ColumnInfo columnInfo) {
-        TableInfoPO tableInfoPO = TableInfoMapstruct.INSTANCE.toTableInfoPO(columnInfo);
-        tableInfoPO.setTableName(tableName);
-        tableInfoPO.setUpdateDate(new Date());
-        List<Integer> version = tableInfoMapper.selectObjs(new LambdaQueryWrapper<TableInfoPO>().eq(TableInfoPO::getTableName, tableName).select(TableInfoPO::getVersion));
-        if (version.size() > 1) {
-            tableInfoPO.setVersion(version.stream().sorted().collect(Collectors.toList()).get(0));
-        } else {
-            tableInfoPO.setVersion(1);
-        }
-        tableInfoPO.setId(IdUtils.createId());
-        tableInfoMapper.insert(tableInfoPO);
-        System.out.println("当前插入的数据:" + tableInfoPO);
-        return String.valueOf(tableInfoPO.getId());
+    public String saveTableColumns(String sourceId,String tableName, ColumnInfo columnInfo) {
+        ColumnInfoPO columnInfoPO = ColumnInfoMapstruct.INSTANCE.toColumnInfoPO(columnInfo);
+        columnInfoPO.setTableName(tableName);
+        columnInfoPO.setUpdateDate(new Date());
+        columnInfoPO.setSourceId(sourceId);
+        columnInfoMapper.insert(columnInfoPO);
+        System.out.println("当前插入的数据:" + columnInfoPO);
+        return String.valueOf(columnInfoPO.getId());
     }
 
-    private Connection getConnection(DatabaseConfig config) throws Exception {
+    private Connection getConnection(DatabaseConfig config) throws ClassNotFoundException, SQLException {
         // 加载驱动类
-        Class.forName(config.getDriverClassName());
+        Class.forName(config.getDatabaseDriver());
 
-        try {
-            // 创建连接
-            return DriverManager.getConnection(
-                    config.getUrl(),
-                    config.getUsername(),
-                    config.getPassword()
-            );
-        } catch (Exception e) {
-            throw new RuntimeException("数据库连接失败，请检查数据库配置" + e);
-        }
-    }
-
-    @Setter
-    @Getter
-    public static class ColumnInfo {
-        private String columnName;
-        private String typeName;
-        private Integer columnSize;
-        private Boolean nullable;
-        private String remarks;
-        private String errorRemarks = "";
+        // 创建连接
+        return DriverManager.getConnection(
+                config.getDatabaseUrl(),
+                config.getDatabaseUser(),
+                config.getDatabasePassword()
+        );
     }
 
 

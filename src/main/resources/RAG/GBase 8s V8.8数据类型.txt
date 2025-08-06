@@ -1,0 +1,23 @@
+GBase 8s 拥有完善的数据类型管理体系，且内置了日常应用所能涉及的所 有数据类型，完全可以满足企业数据管理的需求。支持的内置数据类型包括：
+ 数值类型：SMALLINT、INTEGER、INT8、BIGINT、DECIMAL、 NUMERIC、FLOAT、SMALLFLOAT、REAL、DOUBLE、LONG、SERIAL、 SERIAL8、BIGSERIAL、MONEY。
+ 字符类型：CHAR、VARCHAR、LVARCHAR、NCHAR、NVARCHAR、 CHARACTER VARYING。
+ 日期类型：DATE、DATETIME、INTERVAL。
+ 大对象类型：TEXT、BYTE、CLOB、BLOB。
+ JSON/BSON 数据类型。
+ XML 数据类型。
+ 二进制类型：RAW。
+ 其他类型：BOOLEAN、ROW。 
+
+GBase 8s 支持简单大对象和智能大对象数据类型，可存储文本、图形、声 音等内容。
+ 简单大对象(Simple large object)
+ Text：大字符对象，存储大文本信息，最大支持 2G。
+ Byte：二进制数据，最大支持 2G。
+ 智能大对象(Smart large object)
+ CLOB：智能大字符对象，最大支持 4T。
+ BLOB：智能二进制对象，最大支持 4T。
+
+GBase 8s 支持复杂数据类型的定义，主要有 Row 数据类型、集合数据类型。
+ Row 数据类型 (Row Data Type)。
+ 集合数据类型 (Collection Data Type)，包括 Set、List、Multiset。 
+
+GBase 8s 提供用户定义的数据类型（UDT）功能，通过 UDT 用户可以定义 自己的数据类型。

@@ -2,16 +2,20 @@ package org.shuzhi.Config;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.shuzhi.Dto.DataBaseInfo;
 
 import java.io.Serializable;
 
 @Setter
 @Getter
-public class DatabaseConfig implements Serializable {
-    private Integer id;
-    private String url;
-    private String username;
-    private String password;
-    private String driverClassName;
-    private String databaseName;
+public class DatabaseConfig extends DataBaseInfo implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    private String id;
+
+    /**
+     * 版本号
+     */
+    private String version;
 }

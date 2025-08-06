@@ -1,7 +1,9 @@
 package org.shuzhi.PO;
 
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -14,9 +16,11 @@ import java.util.Date;
  * @author chat2db
  * @since 2025-06-29
  */
-@Data
-@TableName("prj_table_info")
-public class TableInfoPO implements Serializable {
+@Getter
+@Setter
+@ToString
+@TableName("prj_column_info")
+public class ColumnInfoPO implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -26,12 +30,12 @@ public class TableInfoPO implements Serializable {
     private String id;
 
     /**
-     * 主键ID
+     * 数据源ID(表id)
      */
     private String sourceId;
 
     /**
-     * 表名
+     * 数据库名
      */
     private String databaseName;
 
@@ -41,27 +45,32 @@ public class TableInfoPO implements Serializable {
     private String tableName;
 
     /**
-     * 表描述信息
+     * 列名
      */
-    private String description;
+    private String columnName;
 
     /**
-     * 存储引擎类型
+     * 数据类型名称
      */
-    private String engine;
+    private String typeName;
 
     /**
-     * 字符集
+     * 列大小
      */
-    private String charset;
+    private Integer columnSize;
 
     /**
-     * 排序规则
+     * 是否可为空
      */
-    private String collateRule;
+    private String nullable;
 
     /**
-     * 最后更新时间
+     * 列注释
+     */
+    private String remarks;
+
+    /**
+     * 更新时间
      */
     private Date updateDate;
 
