@@ -17,9 +17,15 @@ spring:
   config:
     import: nacos:${spring.application.config}.${spring.cloud.nacos.config.file-extension}
   ai:
-    dashscope:
-      api-key: sk-56e446c369a241eabd8d2b171ed5bc83
-      model: qwen3-4b
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        model: gemma
+      embedding:
+        model: mxbai-embed-large
+#    dashscope:
+#      api-key: sk-56e446c369a241eabd8d2b171ed5bc83
+#      model: qwen3-4b
 # springdoc-openapi项目配置
 springdoc:
   swagger-ui:
@@ -47,6 +53,6 @@ mybatis-plus:
 logging:
   level:
     # 打印MyBatis-Plus的SQL语句
-    com.baomidou.mybatisplus: debug
+#    com.baomidou.mybatisplus: debug
     # 打印你项目Mapper接口的SQL语句
     org.shuzhi.Mapper: debug

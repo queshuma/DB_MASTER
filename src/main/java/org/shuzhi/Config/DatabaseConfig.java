@@ -1,13 +1,11 @@
 package org.shuzhi.Config;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 import org.shuzhi.Dto.DataBaseInfo;
 
 import java.io.Serializable;
 
-@Setter
-@Getter
+@Data
 public class DatabaseConfig extends DataBaseInfo implements Serializable {
 
     private static final long serialVersionUID = 1L;

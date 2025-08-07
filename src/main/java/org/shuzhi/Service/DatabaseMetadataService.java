@@ -1,9 +1,7 @@
 package org.shuzhi.Service;
 
-import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson2.JSONArray;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import okhttp3.*;
 import org.shuzhi.Config.TableInfo;
 import org.shuzhi.Dto.ColumnInfo;
 import org.shuzhi.Dto.CreateProjectDTO;
@@ -229,100 +227,4 @@ public class DatabaseMetadataService {
                 config.getDatabasePassword()
         );
     }
-
-
-    /**
-     * curl --request POST \
-     *   --url https://api.siliconflow.cn/v1/chat/completions \
-     *   --header 'Authorization: Bearer <token>' \
-     *   --header 'Content-Type: application/json' \
-     *   --data '
-     *   {
-     *   "model": "Qwen/QwQ-32B",
-     *   "messages": [
-     *     {
-     *       "role": "user",
-     *       "content": "What opportunities and challenges will the Chinese large model industry face in 2025?"
-     *     }
-     *   ]
-     * }'
-     * @param columns
-     */
-    /**
-     * 硅基流动
-     * @param columns
-     */
-    private void sentToSiliconFlowLLM(List<ColumnInfo> columns) {
-        OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(300, TimeUnit.SECONDS)   // 连接超时
-                .readTimeout(300, TimeUnit.SECONDS)      // 读取超时
-                .writeTimeout(300, TimeUnit.SECONDS)     // 写入超时
-                .build();
-
-
-        String baseContext = String.format("{\"model\": \"Qwen/QwQ-32B\",\"messages\": [{\"role\": \"user\",\"content\": \"你现在是一名专业的数据库运维工程师，你通过和上一个版本的数据表进行了比对，你发现了以下问题，当前是mysql模式，请根据以下内容生成修改语句,不需要解释思考过程，请直接给出语句,%s\"}]}", columns.stream()
-                .map(ColumnInfo::getErrorRemarks)
-                .collect(Collectors.joining(" ")));
-        RequestBody requestBody = RequestBody.create(baseContext, MediaType.parse("application/json"));
-        Request httpRequest = new Request.Builder()
-                .url("https://api.siliconflow.cn/v1/chat/completions")
-                .post(requestBody)
-                .addHeader("Authorization", "Bearer " + "sk-mjuwxxmsunrdtadjqfwnxokdemogbgtcndfepkqxogpqpipq")
-                .addHeader("Content-Type", "application/json")
-                .build();
-
-        System.out.println("开始请求" + LocalDateTime.now());
-        // 4. 发送请求
-        try (Response response = client.newCall(httpRequest).execute()) {
-            if (!response.isSuccessful()) {
-                throw new RuntimeException("请求失败: " + response.code() + " - " + response.body().string());
-            }
-
-            // 5. 解析响应
-            String responseBody = response.body().string();
-            System.out.println("请求内容: " + baseContext);
-            System.out.println("响应结果: " + responseBody);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        System.out.println("结束请求" + LocalDateTime.now());
-    }
-
-    private void sentToOllamaLLM(List<ColumnInfo> columns) {
-        OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(300, TimeUnit.SECONDS)   // 连接超时
-                .readTimeout(300, TimeUnit.SECONDS)      // 读取超时
-                .writeTimeout(300, TimeUnit.SECONDS)     // 写入超时
-                .build();
-
-
-        String baseContext = String.format("{\"model\": \"gemma3:12b\",\"messages\": [{\"role\": \"user\",\"content\": \"你现在是一名专业的数据库运维工程师，你通过和上一个版本的数据表进行了比对，你发现了以下问题，当前是mysql模式，请根据以下内容生成修改语句,不需要解释思考过程，请直接给出语句,%s\"}]}", columns.stream()
-                .map(ColumnInfo::getErrorRemarks)
-                .collect(Collectors.joining(" ")));
-        RequestBody requestBody = RequestBody.create(baseContext, MediaType.parse("application/json"));
-        Request httpRequest = new Request.Builder()
-                .url("http://localhost:8080/api/chat/completions")
-                .post(requestBody)
-                .addHeader("Authorization", "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjlmMjhhMGZmLWYzYTAtNDcyYy04NDBkLTkxZmM1ZTBkODNhMSJ9.OdIEo54N3ttQi9jf48JvzDes49RkiZeYkTQyFLWlhfg")
-                .addHeader("Content-Type", "application/json")
-                .build();
-
-        System.out.println("开始请求" + LocalDateTime.now());
-        // 4. 发送请求
-        try (Response response = client.newCall(httpRequest).execute()) {
-            if (!response.isSuccessful()) {
-                throw new RuntimeException("请求失败: " + response.code() + " - " + response.body().string());
-            }
-
-            // 5. 解析响应
-            String responseBody = response.body().string();
-            System.out.println("请求内容: " + baseContext);
-            System.out.println("响应结果: " + responseBody);
-            System.out.println("返回内容" + JSONObject.parseObject(JSONObject.parseObject(JSONArray.parseArray(JSONObject.parseObject(responseBody).get("choices").toString()).get(0).toString()).get("message").toString()).get("content"));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        System.out.println("结束请求" + LocalDateTime.now());
-    }
-
 }
