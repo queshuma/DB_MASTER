@@ -6,7 +6,9 @@ import org.mapstruct.Mappings;
 import org.mapstruct.factory.Mappers;
 import org.shuzhi.Dto.CreateProjectDTO;
 import org.shuzhi.Dto.ProjectBaseDTO;
+import org.shuzhi.Dto.ProjectDatabaseDTO;
 import org.shuzhi.PO.ProjectPO;
+import org.shuzhi.PO.ProjectVersionPO;
 
 import java.util.List;
 
@@ -30,4 +32,8 @@ public interface ProjectInfoMapstruct {
     ProjectPO toProjectPO(ProjectBaseDTO input);
 
     ProjectPO createToProjectPO(CreateProjectDTO input);
+
+    ProjectPO updateToProjectPO(ProjectDatabaseDTO input);
+
+    List<ProjectVersionPO> toProjectVersionList(List<ProjectVersionPO> selectList);
 }

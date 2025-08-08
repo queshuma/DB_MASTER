@@ -12,6 +12,8 @@ public class DatabaseConfig extends DataBaseInfo implements Serializable {
 
     private String id;
 
+    private String projectName;
+
     /**
      * 版本号
      */

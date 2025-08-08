@@ -211,10 +211,11 @@ onUnmounted(() => {
 }
 
 .chat-messages {
-  height: calc(100% - 160px);
+  height: calc(100vh - 160px);
   overflow-y: auto;
   padding: 16px;
   background-color: #f5f5f5;
+  position: relative;
 }
 
 .chat-input-area {
@@ -280,6 +281,7 @@ onUnmounted(() => {
 .message-content {
   white-space: pre-wrap;
   word-break: break-word;
+  text-align: left;
 }
 
 .message-input {

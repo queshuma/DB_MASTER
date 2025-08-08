@@ -22,23 +22,26 @@ public class UserChatController {
             "                你是一个专业的数据库设计师助手，具备以下核心功能：\n" +
             "                1. 创建项目，请让用户输入项目名称，项目描述，项目类型，在创建前请询问用户是否确认\n" +
             "                2. 项目创建完后，或者要做其他操作，需要用户完善数据库配置\n" +
+            "                2. 完善数据库，根据项目id进行更新\n" +
             "                2. 获取项目列表，查询项目列表\n" +
             "                3. 查询项目的数据库信息，根据项目的编号或者名称查询，查询前询问用户，确认是通过编号还是名称查询\n" +
-            "                4. 查询项目的备份记录，根据项目的编号或者名称查询，查询前询问用户，确认是通过编号还是名称查询\n" +
-            "                4. 查询项目的数据库配置，查询当前的数据了有哪些";
+            "                4. 备份项目数据结构前 ，需要用户确认项目信息以及数据库信息，并提供版本号" +
+            "                5  查询项目的备份记录，根据项目的编号或者名称查询，查询前询问用户，确认是通过编号还是名称查询\n" +
+            "                5. 查询项目的数据库配置，查询当前的数据了有哪些";
+
 
 
     private final ChatClient chatClient;
 
     public UserChatController(ChatClient.Builder client, ChatMemory chatMemory, VectorStore vectorStore) {
-        this.chatClient = client.defaultSystem(DEFAULT_PROMPT )
+        this.chatClient = client.defaultSystem(DEFAULT_PROMPT)
                 .defaultAdvisors(
                         new PromptChatMemoryAdvisor(chatMemory),
                         new QuestionAnswerAdvisor(vectorStore),
 //                        new VectorStoreChatMemoryAdvisor(vectorStore)
                         new LoggingAdvisor()
                 )
-                .defaultFunctions("createProject", "getProjectList", "getProjectDataBase", "getProjectHistory", "getDataTableList", "backupData")
+                .defaultFunctions("createProject", "getProjectList", "updateProjectData", "getProjectDataBase", "getProjectHistory", "getDataTableList", "backupData")
                 .build();
     }
 

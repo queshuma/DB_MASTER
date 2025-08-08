@@ -6,31 +6,30 @@ import org.shuzhi.Config.TableInfo;
 import org.shuzhi.Dto.ColumnInfo;
 import org.shuzhi.Dto.CreateProjectDTO;
 import org.shuzhi.Dto.ProjectBaseDTO;
+import org.shuzhi.Dto.ProjectDatabaseDTO;
 import org.shuzhi.Mapper.ColumnInfoMapper;
 import org.shuzhi.Mapper.ProjectInfoMapper;
+import org.shuzhi.Mapper.ProjectVersionMapper;
 import org.shuzhi.Mapper.TableInfoMapper;
 import org.shuzhi.Mapstruct.ColumnInfoMapstruct;
 import org.shuzhi.Mapstruct.ProjectInfoMapstruct;
-import org.shuzhi.Mapstruct.TableInfoMapstruct;
 import org.shuzhi.PO.ColumnInfoPO;
 import org.shuzhi.PO.ProjectPO;
+import org.shuzhi.PO.ProjectVersionPO;
 import org.shuzhi.PO.TableInfoPO;
 import org.shuzhi.Config.DatabaseConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Description;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.Date;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.sql.*;
 import java.sql.Connection;
-import java.time.LocalDateTime;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Service
 public class DatabaseMetadataService {
@@ -40,10 +39,13 @@ public class DatabaseMetadataService {
 
     private final ColumnInfoMapper columnInfoMapper;
 
-    public DatabaseMetadataService(TableInfoMapper tableInfoMapper, ProjectInfoMapper projectInfoMapper, ColumnInfoMapper columnInfoMapper) {
+    private final ProjectVersionMapper projectVersionMapper;
+
+    public DatabaseMetadataService(TableInfoMapper tableInfoMapper, ProjectInfoMapper projectInfoMapper, ColumnInfoMapper columnInfoMapper, ProjectVersionMapper projectVersionMapper) {
         this.tableInfoMapper = tableInfoMapper;
         this.projectInfoMapper = projectInfoMapper;
         this.columnInfoMapper = columnInfoMapper;
+        this.projectVersionMapper = projectVersionMapper;
     }
 
     public List<String> getTableNames(DatabaseConfig config) throws SQLException, ClassNotFoundException {
@@ -103,6 +105,15 @@ public class DatabaseMetadataService {
     }
 
     @Bean
+    @Description("配置数据库")
+    public Function<ProjectDatabaseDTO, String> updateProjectData() {
+        return input -> {
+            projectInfoMapper.updateById(ProjectInfoMapstruct.INSTANCE.updateToProjectPO(input));
+            return input.getProjectName();
+        };
+    }
+
+    @Bean
     @Description("查询项目列表")
     public Function<Object, List<ProjectBaseDTO>> getProjectList() {
         return input -> {
@@ -122,9 +133,11 @@ public class DatabaseMetadataService {
     }
 
     @Bean
-    @Description("根据编号或名称查询备份版本")
-    public Function<Object, List<ProjectBaseDTO>> getProjectHistory() {
-        return input -> ProjectInfoMapstruct.INSTANCE.toProjectDTOList(projectInfoMapper.selectList(new LambdaQueryWrapper<>()));
+    @Description("根据编号或名称查询备份记录")
+    public Function<ProjectBaseDTO, List<ProjectVersionPO>> getProjectHistory() {
+        return input -> ProjectInfoMapstruct.INSTANCE.toProjectVersionList(projectVersionMapper.selectList(new LambdaQueryWrapper<ProjectVersionPO>()
+                .eq(!Objects.isNull(input.getId()), ProjectVersionPO::getSourceId, input.getId())
+                .eq(!Objects.isNull(input.getProjectName()), ProjectVersionPO::getProjectName, input.getProjectName())));
     }
 
     @Bean
@@ -149,13 +162,18 @@ public class DatabaseMetadataService {
      */
 
     @Bean
-    @Description("保存数据表字段信息")
+    @Description("备份项目数据结构")
     @Transactional(rollbackFor = Exception.class)
     public Function<DatabaseConfig, List<String>> backupData() {
         return input -> {
             // 返回内容
             List<String> result = new ArrayList<>();
             DatabaseConfig config = input;
+            ProjectVersionPO projectVersionPO = new ProjectVersionPO();
+            projectVersionPO.setProjectName(config.getProjectName());
+            projectVersionPO.setVersion(config.getVersion());
+            projectVersionPO.setSourceId(input.getId());
+            projectVersionMapper.insert(projectVersionPO);
             try (Connection connection = getConnection(config)) {
                 DatabaseMetaData metaData = connection.getMetaData();
 
@@ -163,11 +181,9 @@ public class DatabaseMetadataService {
 
                 try (ResultSet tables = metaData.getTables(config.getDatabaseName(), null, null, new String[]{"TABLE"})) {
                     while (tables.next()) {
-//                        TableInfoPO tableInfoPO = TableInfoMapstruct.INSTANCE.toTableInfoPO(tables);
                         TableInfoPO tableInfoPO = new TableInfoPO();
 
                         tableInfoPO.setTableName(tables.getString("TABLE_NAME"));
-//                        tableInfoPO.set(tables.getString("TABLE_TYPE"));
                         tableInfoPO.setDescription(tables.getString("REMARKS"));
                         tableInfoPO.setCharset(tables.getString("TYPE_CAT"));
                         tableInfoPO.setSourceId(input.getId());
@@ -186,8 +202,7 @@ public class DatabaseMetadataService {
                                 column.setNullable(columnsResult.getInt("NULLABLE") == DatabaseMetaData.columnNullable);
                                 column.setRemarks(columnsResult.getString("REMARKS"));
 
-//                                columns.add(column);
-                                this.saveTableColumns(tableInfoPO.getId(), tableInfoPO.getTableName(), column);
+                                this.saveTableColumns(tableInfoPO.getId(), tableInfoPO.getTableName(), column, input.getVersion());
                             }
                         } catch (SQLException e) {
                             throw new RuntimeException(e);
@@ -206,11 +221,12 @@ public class DatabaseMetadataService {
     /**
      * 插入当前数据库表结构
      */
-    public String saveTableColumns(String sourceId,String tableName, ColumnInfo columnInfo) {
+    public String saveTableColumns(String sourceId,String tableName, ColumnInfo columnInfo, String version) {
         ColumnInfoPO columnInfoPO = ColumnInfoMapstruct.INSTANCE.toColumnInfoPO(columnInfo);
         columnInfoPO.setTableName(tableName);
         columnInfoPO.setUpdateDate(new Date());
         columnInfoPO.setSourceId(sourceId);
+        columnInfoPO.setVersion(version);
         columnInfoMapper.insert(columnInfoPO);
         System.out.println("当前插入的数据:" + columnInfoPO);
         return String.valueOf(columnInfoPO.getId());
