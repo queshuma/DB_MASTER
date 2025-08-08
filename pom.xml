@@ -70,7 +70,6 @@
             <groupId>com.alibaba.fastjson2</groupId>
             <artifactId>fastjson2</artifactId>
             <version>2.0.21</version>
-            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
@@ -88,11 +87,15 @@
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
             <version>4.4.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
 <!--        spring-ai中使用nacos的配置和原nacos配置不一致，暂时使用统一的配置-->
         <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-ollama-spring-boot-starter</artifactId>
-            <version>1.0.0-M6</version>
+            <groupId>com.alibaba.cloud.ai</groupId>
+            <artifactId>spring-ai-alibaba-starter</artifactId>
+            <version>1.0.0-M5.1</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.alibaba.nacos</groupId>
@@ -104,25 +107,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-        </dependency>
-<!--        <dependency>-->
-<!--            <groupId>com.alibaba.cloud.ai</groupId>-->
-<!--            <artifactId>spring-ai-alibaba-starter</artifactId>-->
-<!--            <version>1.0.0-M5.1</version>-->
-<!--            <exclusions>-->
-<!--                <exclusion>-->
-<!--                    <groupId>com.alibaba.nacos</groupId>-->
-<!--                    <artifactId>nacos-client-mse-extension</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>com.alibaba.cloud</groupId>-->
-<!--                    <artifactId>spring-alibaba-nacos-config</artifactId>-->
-<!--                </exclusion>-->
-<!--            </exclusions>-->
-<!--        </dependency>-->
     </dependencies>
     <dependencyManagement>
 <!--        <dependencies>-->
