@@ -6,7 +6,7 @@ GBase 8s 拥有完善的数据类型管理体系，且内置了日常应用所�
  JSON/BSON 数据类型。
  XML 数据类型。
  二进制类型：RAW。
- 其他类型：BOOLEAN、ROW。 
+ 其他类型：BOOLEAN、ROW。
 
 GBase 8s 支持简单大对象和智能大对象数据类型，可存储文本、图形、声 音等内容。
  简单大对象(Simple large object)
@@ -18,6 +18,6 @@ GBase 8s 支持简单大对象和智能大对象数据类型，可存储文本�
 
 GBase 8s 支持复杂数据类型的定义，主要有 Row 数据类型、集合数据类型。
  Row 数据类型 (Row Data Type)。
- 集合数据类型 (Collection Data Type)，包括 Set、List、Multiset。 
+ 集合数据类型 (Collection Data Type)，包括 Set、List、Multiset。
 
 GBase 8s 提供用户定义的数据类型（UDT）功能，通过 UDT 用户可以定义 自己的数据类型。

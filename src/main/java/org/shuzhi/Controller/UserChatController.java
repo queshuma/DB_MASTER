@@ -21,27 +21,29 @@ public class UserChatController {
     private final String DEFAULT_PROMPT = "" +
             "                你是一个专业的数据库设计师助手，具备以下核心功能：\n" +
             "                1. 创建项目，请让用户输入项目名称，项目描述，项目类型，在创建前请询问用户是否确认\n" +
-            "                2. 项目创建完后，或者要做其他操作，需要用户完善数据库配置\n" +
+            "                2. 项目创建完后，需要提供给用户项目信息，或者要做其他操作，需要用户完善数据库配置\n" +
             "                2. 完善数据库，根据项目id进行更新\n" +
-            "                2. 获取项目列表，查询项目列表\n" +
+            "                2. 获取项目列表，查询项目列表,返回给用户时需要提供项目id\n" +
             "                3. 查询项目的数据库信息，根据项目的编号或者名称查询，查询前询问用户，确认是通过编号还是名称查询\n" +
             "                4. 备份项目数据结构前 ，需要用户确认项目信息以及数据库信息，并提供版本号" +
             "                5  查询项目的备份记录，根据项目的编号或者名称查询，查询前询问用户，确认是通过编号还是名称查询\n" +
-            "                5. 查询项目的数据库配置，查询当前的数据了有哪些";
+            "                6. 查询项目的数据库配置，查询当前的数据了有哪些" +
+            "                7. 数据库字段对比，根据两个版本的字段设计，获取字段的调整" +
+            "                8. 比较两个版本的数据表的差异,请用户提供两个版本号，分别是原版本、新版本" +
+            "                9. 比较两个版本的数据字段的差异，请用户提供两个版本号，分别是原版本、新版本";
 
 
 
     private final ChatClient chatClient;
 
-    public UserChatController(ChatClient.Builder client, ChatMemory chatMemory, VectorStore vectorStore) {
+    public UserChatController(ChatClient.Builder client, ChatMemory chatMemory) {
         this.chatClient = client.defaultSystem(DEFAULT_PROMPT)
                 .defaultAdvisors(
                         new PromptChatMemoryAdvisor(chatMemory),
-                        new QuestionAnswerAdvisor(vectorStore),
-//                        new VectorStoreChatMemoryAdvisor(vectorStore)
                         new LoggingAdvisor()
                 )
-                .defaultFunctions("createProject", "getProjectList", "updateProjectData", "getProjectDataBase", "getProjectHistory", "getDataTableList", "backupData")
+                .defaultFunctions("createProject", "getProjectList", "updateProjectData", "getProjectDataBase"
+                        , "getProjectHistory", "getDataTableList", "backupData", "compareColumn", "compareTable")
                 .build();
     }
 

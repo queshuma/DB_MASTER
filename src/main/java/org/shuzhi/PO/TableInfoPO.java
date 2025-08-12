@@ -1,5 +1,7 @@
 package org.shuzhi.PO;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
@@ -56,13 +58,9 @@ public class TableInfoPO implements Serializable {
     private String charset;
 
     /**
-     * 排序规则
-     */
-    private String collateRule;
-
-    /**
      * 最后更新时间
      */
+    @TableField(fill = FieldFill.INSERT_UPDATE)
     private Date updateDate;
 
     /**

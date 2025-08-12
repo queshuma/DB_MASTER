@@ -1,5 +1,7 @@
 package org.shuzhi.PO;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Getter;
 import lombok.Setter;
@@ -28,6 +30,11 @@ public class ColumnInfoPO implements Serializable {
      * 主键ID
      */
     private String id;
+
+    /**
+     * 项目id
+     */
+    private String projectId;
 
     /**
      * 数据源ID(表id)
@@ -72,6 +79,7 @@ public class ColumnInfoPO implements Serializable {
     /**
      * 更新时间
      */
+    @TableField(fill = FieldFill.INSERT_UPDATE)
     private Date updateDate;
 
     /**
