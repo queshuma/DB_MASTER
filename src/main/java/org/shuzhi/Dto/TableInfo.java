@@ -1,4 +1,4 @@
-package org.shuzhi.Config;
+package org.shuzhi.Dto;
 
 import lombok.Getter;
 import lombok.Setter;

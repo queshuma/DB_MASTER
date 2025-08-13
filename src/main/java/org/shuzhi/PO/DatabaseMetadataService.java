@@ -1,8 +1,9 @@
-package org.shuzhi.Service;
+package org.shuzhi.PO;
 
 
+import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import org.shuzhi.Config.TableInfo;
+import org.shuzhi.Dto.TableInfo;
 import org.shuzhi.Dto.*;
 import org.shuzhi.Mapper.ColumnInfoMapper;
 import org.shuzhi.Mapper.ProjectInfoMapper;
@@ -18,6 +19,7 @@ import org.shuzhi.Config.DatabaseConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Description;
 
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.Date;
 import java.util.function.Function;
@@ -113,11 +115,15 @@ public class DatabaseMetadataService {
 
     @Bean
     @Description("查询项目列表")
-    public Function<Object, List<ProjectBaseDTO>> getProjectList() {
+    public Function<Object, String> getProjectList() {
         return input -> {
             List<ProjectPO> projectPOList = projectInfoMapper.selectList(new LambdaQueryWrapper<>());
             if (projectPOList.isEmpty()) {new ArrayList<>();}
-            return ProjectInfoMapstruct.INSTANCE.toProjectDTOList(projectPOList);
+            List<ProjectBaseDTO> projectBaseDTOList = ProjectInfoMapstruct.INSTANCE.toProjectDTOList(projectPOList);
+            if (projectBaseDTOList.isEmpty()) {
+                return "当前没有项目数据";
+            }
+            return JSONObject.toJSONString(projectBaseDTOList);
         };
     }
 
@@ -394,4 +400,5 @@ public class DatabaseMetadataService {
                 config.getDatabasePassword()
         );
     }
+
 }

@@ -4,6 +4,10 @@ spring:
   application:
     name: DB_Master
     config: db_master_config
+  ai:
+    retry:
+      backoff:
+        initial-interval: 1000ms
   cloud:
     nacos:
       config:

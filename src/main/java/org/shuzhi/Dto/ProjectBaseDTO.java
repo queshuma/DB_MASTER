@@ -2,10 +2,11 @@ package org.shuzhi.Dto;
 
 import lombok.Data;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
-public class ProjectBaseDTO extends DataBaseInfo {
+public class ProjectBaseDTO extends DataBaseInfo implements Serializable {
     /**
      * id
      */

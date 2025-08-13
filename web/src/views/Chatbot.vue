@@ -1,5 +1,13 @@
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted } from 'vue';
+import MarkdownIt from 'markdown-it';
+
+// 创建Markdown实例并配置以更好地处理空行
+const md = new MarkdownIt({
+  breaks: true,  // 将回车转换为<br>
+  linkify: true,
+  typographer: true
+});
 
 // 消息列表数据
 const messages = ref([
@@ -118,7 +126,7 @@ const sendMessage = async () => {
     isSending.value = false;
     abortController = null;
   }
-}
+};
 
 // 取消发送
 const cancelSend = () => {
@@ -155,7 +163,7 @@ onUnmounted(() => {
               {{ msg.isUser ? '我' : '系统' }}
             </span>
             <div class="message-content">
-              {{ msg.content }}
+              <div v-html="md.render(msg.content)"></div>
               <span v-if="msg.isStreaming" class="loading-dot">...</span>
             </div>
           </div>
@@ -282,6 +290,22 @@ onUnmounted(() => {
   white-space: pre-wrap;
   word-break: break-word;
   text-align: left;
+}
+
+.message-content >>> pre {
+  white-space: pre-wrap;
+  background: #f8f8f8;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.message-content >>> code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.message-content >>> p {
+  margin: 8px 0;  /* 增加段落间距以改善空行显示 */
+  line-height: 1.0;  /* 增加行高以提高可读性 */
 }
 
 .message-input {
