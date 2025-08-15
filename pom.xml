@@ -107,6 +107,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+<!--        sa-token鉴权-->
+        <dependency>
+            <groupId>cn.dev33</groupId>
+            <artifactId>sa-token-spring-boot3-starter</artifactId>
+            <version>1.44.0</version>
+        </dependency>
     </dependencies>
     <dependencyManagement>
 <!--        <dependencies>-->

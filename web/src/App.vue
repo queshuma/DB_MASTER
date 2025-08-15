@@ -3,13 +3,17 @@ import { ref, watch } from 'vue';
 import { Layout } from 'ant-design-vue';
 import { useRoute, useRouter } from 'vue-router';
 import Sidebar from './components/Sidebar.vue';
-const { Sider, Content } = Layout;
+import UserMenu from './components/UserMenu.vue';
+const { Sider, Content, Header } = Layout;
+
+const route = useRoute();
+const router = useRouter();
 
 // 当前选中的菜单项
 const selectedKeys = ref(['chatbot']);
 
-const route = useRoute();
-const router = useRouter();
+// 需要全屏显示的页面
+const fullPageRoutes = ['/login', '/register'];
 
 // 监听路由变化，更新选中的菜单项
 watch(
@@ -21,7 +25,12 @@ watch(
       '/personal-settings': 'settings',
       '/operation-records': 'records'
     };
-    selectedKeys.value = [pathMap[newPath] || 'chatbot'];
+    // 仅在有对应映射时更新selectedKeys
+    if (pathMap[newPath]) {
+      selectedKeys.value = [pathMap[newPath]];
+    } else {
+      selectedKeys.value = [];
+    }
   },
   { immediate: true }
 );
@@ -37,7 +46,7 @@ watch(
       'records': '/operation-records'
     };
     const path = keyMap[newKeys[0]];
-    if (path && route.path !== path) {
+    if (path && route.path !== path && !fullPageRoutes.includes(route.path)) {
       router.push(path);
     }
   },
@@ -46,15 +55,22 @@ watch(
 </script>
 
 <template>
-  <Layout style="min-height: 100vh; display: flex; flex-direction: row; width: 100%;">
+  <div v-if="fullPageRoutes.includes(route.path)">
+    <!-- 全屏页面布局 - 登录和注册页面 -->
+    <router-view />
+  </div>
+  <Layout v-else style="min-height: 100vh; display: flex; flex-direction: row; width: 100%;">
     <!-- 左侧导航栏 - 使用拆分后的Sidebar组件 -->
     <Sider width="256" theme="light" style="box-shadow: 2px 0 6px rgba(0, 21, 41, 0.05);">
       <Sidebar v-model:selectedKeys="selectedKeys" />
     </Sider>
 
     <!-- 主内容区域 -->
-    <Layout style="flex: 1; display: flex; flex-direction: column; width: 100%; padding: 0 16px;">
-      <Content style="margin: 24px 0; padding: 24px; background: #fff; min-height: 280px; border-radius: 4px; flex: 1; width: 100%; box-sizing: border-box;">
+    <Layout style="flex: 1; display: flex; flex-direction: column; width: 100%; padding: 0; overflow: hidden;">
+      <Header style="padding: 0; background: #fff; border-bottom: 1px solid #e8e8e8;">
+        <UserMenu />
+      </Header>
+      <Content style="margin: 24px; padding: 24px; background: #fff; min-height: 280px; border-radius: 4px; flex: 1; width: 100%; box-sizing: border-box;">
         <router-view />
       </Content>
     </Layout>
@@ -62,6 +78,9 @@ watch(
 </template>
 
 <style scoped>
+template {
+  padding: 0%;
+}
 .chat-container {
   display: flex;
   flex-direction: column;

@@ -1,80 +1,49 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 import { message } from 'ant-design-vue';
-import axios from 'axios';
+import link from '../link/Link.js';
 
 const router = useRouter();
-const phoneNumber = ref('');
-const verificationCode = ref('');
-const countdown = ref(0);
+const store = useStore();
+const username = ref('');
+const password = ref('');
 const isButtonDisabled = ref(false);
-
-// 发送验证码
-const sendVerificationCode = async () => {
-  if (!phoneNumber.value || !/^1[3-9]\d{9}$/.test(phoneNumber.value)) {
-    message.error('请输入有效的手机号码');
-    return;
-  }
-
-  try {
-    isButtonDisabled.value = true;
-    // 实际项目中替换为真实的发送验证码API
-    await axios.post('/api/send-sms', {
-      phone: phoneNumber.value
-    });
-    message.success('验证码发送成功');
-    startCountdown();
-  } catch (error) {
-    message.error('验证码发送失败: ' + error.message);
-  } finally {
-    isButtonDisabled.value = false;
-  }
-};
-
-// 倒计时功能
-const startCountdown = () => {
-  countdown.value = 60;
-  const timer = setInterval(() => {
-    countdown.value--;
-    if (countdown.value <= 0) {
-      clearInterval(timer);
-    }
-  }, 1000);
-};
-
-// 已移除，使用router-link代替;
 
 // 登录功能
 const login = async () => {
-  if (!phoneNumber.value || !/^1[3-9]\d{9}$/.test(phoneNumber.value)) {
-    message.error('请输入有效的手机号码');
+  if (!username.value || username.value.trim() === '') {
+    message.error('请输入用户名');
     return;
   }
 
-  if (!verificationCode.value || verificationCode.value.length !== 6) {
-    message.error('请输入6位验证码');
+  if (!password.value || password.value.length < 6) {
+    message.error('密码长度不能少于6位');
     return;
   }
 
-  try {
-    isButtonDisabled.value = true;
-    // 实际项目中替换为真实的登录API
-    const response = await axios.post('/api/login', {
-      phone: phoneNumber.value,
-      code: verificationCode.value
-    });
+    // 使用Link工具发送登录请求
 
-    // 保存token到本地存储
-    localStorage.setItem('token', response.data.token);
-    message.success('登录成功');
-    router.push('/chatbot');
-  } catch (error) {
-    message.error('登录失败: ' + error.message);
-  } finally {
-    isButtonDisabled.value = false;
-  }
+    link("/user/login", 'GET',{}, {      
+      username: username.value,
+      password: password.value}, {} )
+    .then(response => {
+      console.log(response.resultCode)
+      if (response.resultCode === '200') {
+          // 保存token到本地存储
+          // localStorage.setItem('token', response.token);
+          // 存储用户信息到store
+          store.commit('setUserInfo', response.result);
+          isButtonDisabled.value = true;
+          message.success('登录成功');
+          router.push('/chatbot');
+        } else {
+        message.error(response.resultMsg);
+      }
+    })
 };
+
 </script>
 
 <template>
@@ -82,35 +51,24 @@ const login = async () => {
     <div class="login-form">
       <h2 class="form-title">账号登录</h2>
       <div class="form-item">
-        <label for="phone" class="form-label">手机号码</label>
+        <label for="username" class="form-label">用户名</label>
         <input
-          type="tel"
-          id="phone"
-          v-model="phoneNumber"
-          placeholder="请输入手机号码"
+          type="text"
+          id="username"
+          v-model="username"
+          placeholder="请输入用户名"
           class="form-input"
-          :disabled="countdown > 0"
         />
       </div>
       <div class="form-item">
-        <label for="code" class="form-label">验证码</label>
-        <div class="code-input-container">
-          <input
-            type="text"
-            id="code"
-            v-model="verificationCode"
-            placeholder="请输入验证码"
-            class="form-input code-input"
-            maxlength="6"
-          />
-          <button
-            class="send-code-btn"
-            @click="sendVerificationCode"
-            :disabled="countdown > 0 || isButtonDisabled"
-          >
-            {{ countdown > 0 ? `${countdown}秒后重新发送` : '获取验证码' }}
-          </button>
-        </div>
+        <label for="password" class="form-label">密码</label>
+        <input
+          type="password"
+          id="password"
+          v-model="password"
+          placeholder="请输入密码"
+          class="form-input"
+        />
       </div>
       <button
         class="login-btn"

@@ -1,4 +1,4 @@
-package org.shuzhi.PO;
+package org.shuzhi.Service;
 
 
 import com.alibaba.fastjson2.JSONObject;
