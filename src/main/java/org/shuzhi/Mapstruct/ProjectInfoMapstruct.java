@@ -25,7 +25,9 @@ public interface ProjectInfoMapstruct {
 
     ProjectInfoMapstruct INSTANCE = Mappers.getMapper(ProjectInfoMapstruct.class);
 
-    ProjectBaseDTO toProjectDatabaseDTO(ProjectPO projectPO);
+    ProjectBaseDTO toProjectBaseDTO(ProjectPO projectPO);
+
+    ProjectDatabaseDTO toProjectDatabaseDTO(ProjectPO projectPO);
 
     List<ProjectBaseDTO> toProjectDTOList(List<ProjectPO> projectPOList);
 

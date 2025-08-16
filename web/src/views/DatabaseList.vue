@@ -1,45 +1,90 @@
 <script setup>
-import { ref, h } from 'vue';
-import { Table, Button, message } from 'ant-design-vue';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons-vue';
+import { ref, h, onMounted } from 'vue';
+import { Table, Button, message, Input, Pagination, Modal } from 'ant-design-vue';
+import { PlusOutlined, SearchOutlined, InfoCircleOutlined } from '@ant-design/icons-vue';
 import { useRouter } from 'vue-router';
+import link from '../link/Link.js';
 
 const router = useRouter();
 
-// 模拟数据库列表数据
-const databaseData = ref([
-  { id: 1, name: '测试数据库1', type: 'MySQL', host: 'localhost', port: 3306, status: '运行中' },
-  { id: 2, name: '测试数据库2', type: 'PostgreSQL', host: '192.168.1.100', port: 5432, status: '运行中' },
-  { id: 3, name: '测试数据库3', type: 'MongoDB', host: '192.168.1.101', port: 27017, status: '已停止' },
-  { id: 4, name: '测试数据库4', type: 'Redis', host: '192.168.1.102', port: 6379, status: '运行中' },
-  { id: 5, name: '测试数据库5', type: 'SQLite', host: 'localhost', port: null, status: '运行中' },
-]);
+// 项目列表数据
+const projectData = ref([]);
+// 搜索关键词
+const searchKeyword = ref('');
+// 分页参数
+const currentPage = ref(1);
+const pageSize = ref(10);
+const totalCount = ref(0);
 
-// 表格列配置
+// 获取项目列表数据
+const getProjectList = async () => {
+  try {
+    const response = await link('/project/getList', 'post', {
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      name: searchKeyword.value
+    });
+    projectData.value = response.records;
+    totalCount.value = response.total;
+  } catch (error) {
+    message.error('获取项目列表失败: ' + error.message);
+    console.error('Failed to fetch project list:', error);
+  }
+};
+
+// 初始加载数据
+onMounted(() => {
+  getProjectList();
+});
+
+// 处理分页变化
+const handlePageChange = (page, pageSize) => {
+  currentPage.value = page;
+  pageSize.value = pageSize;
+  getProjectList();
+};
+
+// 处理搜索
+const handleSearch = () => {
+  currentPage.value = 1;
+  getProjectList();
+};
+
+// 按下Enter键触发搜索
+const handleKeyPress = (e) => {
+  if (e.key === 'Enter') {
+    handleSearch();
+  }
+};// 表格列配置
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
-  { title: '数据库名称', dataIndex: 'name', key: 'name', width: 150 },
-  { title: '数据库类型', dataIndex: 'type', key: 'type', width: 120 },
-  { title: '主机', dataIndex: 'host', key: 'host', width: 150 },
-  { title: '端口', dataIndex: 'port', key: 'port', width: 100 },
+  { title: '项目名称', dataIndex: 'projectName', key: 'projectName', width: 150 },
+  { title: '项目类型', dataIndex: 'projectType', key: 'projectType', width: 120 },
+  { title: '项目描述', dataIndex: 'projectDescription', key: 'projectDescription', width: 200 },
   { 
-    title: '状态', 
-    dataIndex: 'status', 
-    key: 'status', 
-    width: 100, 
+    title: '创建时间', 
+    dataIndex: 'createTime', 
+    key: 'createTime', 
+    width: 180, 
     customRender: ({ text }) => {
-      return h('span', {
-        style: {
-          color: text === '运行中' ? 'green' : 'red',
-          fontWeight: 'bold'
-        }
-      }, text);
+      return text ? new Date(text).toLocaleString() : '';
     }
   },
   { 
+    title: '更新时间', 
+    dataIndex: 'updateTime', 
+    key: 'updateTime', 
+    width: 180, 
+    customRender: ({ text }) => {
+      return text ? new Date(text).toLocaleString() : '';
+    }
+  },
+  { title: '备份次数', dataIndex: 'backCount', key: 'backCount', width: 100 },
+  { title: '版本号', dataIndex: 'version', key: 'version', width: 100 },
+  { 
     title: '操作', 
     key: 'action', 
-    width: 150, 
+    width: 100, 
     fixed: 'right', 
     customRender: ({ record }) => {
       return h('div', {
@@ -51,62 +96,91 @@ const columns = [
         h(Button, {
           type: 'primary',
           size: 'small',
-          onClick: () => handleEdit(record),
-          icon: h(EditOutlined)
-        }, '编辑'),
-        h(Button, {
-          type: 'danger',
-          size: 'small',
-          onClick: () => handleDelete(record.id),
-          icon: h(DeleteOutlined)
-        }, '删除')
+          onClick: () => handleDetail(record),
+          icon: h(InfoCircleOutlined)
+        }, '详情')
       ]);
     }
-  },
+  }
 ];
-
-// 处理编辑事件
-const handleEdit = (record) => {
-  message.info(`编辑数据库: ${record.name}`);
-  // 这里可以添加路由跳转或弹窗编辑逻辑
-};
-
-// 处理删除事件
-const handleDelete = (id) => {
-  // 确认删除
-  message.warning('确定要删除该数据库吗？').then(() => {
-    databaseData.value = databaseData.value.filter(item => item.id !== id);
-    message.success('删除成功');
-  });
-};
 
 // 处理添加事件
 const handleAdd = () => {
-  message.info('添加新数据库');
+  message.info('添加新项目');
   // 这里可以添加路由跳转或弹窗添加逻辑
+};
+
+// 处理详情事件
+const handleDetail = async (record) => {
+  try {
+    const response = await link('/project/getDetail', 'get', {
+    }, {      
+      projectId: record.id
+    });
+    
+    // 显示详情弹窗
+    Modal.info({
+      title: '项目详情',
+      content: h('div', null, [
+        h('p', null, [h('strong', null, 'ID:'), ' ', response.id]),
+        h('p', null, [h('strong', null, '项目名称:'), ' ', response.projectName]),
+        h('p', null, [h('strong', null, '项目描述:'), ' ', response.projectDescription]),
+        h('p', null, [h('strong', null, '项目类型:'), ' ', response.projectType]),
+        h('p', null, [h('strong', null, '数据库地址:'), ' ', response.databaseUrl]),
+        h('p', null, [h('strong', null, '数据库驱动:'), ' ', response.databaseDriver]),
+        h('p', null, [h('strong', null, '数据库用户:'), ' ', response.databaseUser]),
+        h('p', null, [h('strong', null, '数据库密码:'), ' ', response.databasePassword]),
+        h('p', null, [h('strong', null, '数据库名称:'), ' ', response.databaseName])
+      ]),
+      onOk() {},
+    });
+  } catch (error) {
+    message.error('获取项目详情失败: ' + error.message);
+    console.error('Failed to fetch project detail:', error);
+  }
 };
 </script>
 
 <template>
   <div class="database-list-container">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-      <h2>数据库列表</h2>
-      <Button type="primary" @click="handleAdd">
-          <template #icon>
-            <PlusOutlined />
-          </template>
-          添加数据库
-        </Button>
+        <h2>项目列表</h2>
+        <div style="display: flex; gap: 10px;">
+          <Input
+            placeholder="输入项目名称搜索"
+            v-model:value="searchKeyword"
+            :prefix="h(SearchOutlined)"
+            style="width: 200px;"
+            @keypress="handleKeyPress"
+          />
+          <Button type="primary" @click="handleSearch">搜索</Button>
+          <Button type="primary" @click="handleAdd">
+            <template #icon>
+              <PlusOutlined />
+            </template>
+            添加项目
+          </Button>
+        </div>
     </div>
     
     <Table
       :columns="columns"
-      :data-source="databaseData"
+      :data-source="projectData"
       bordered
       rowKey="id"
-      :pagination="{ pageSize: 10 }"
+      pagination="false"
       style="width: 100%"
     />
+    <div style="display: flex; justify-content: flex-end; marginTop: 16px;">
+      <Pagination
+        :current-page="currentPage"
+        :page-size="pageSize"
+        :total="totalCount"
+        @change="handlePageChange"
+        showSizeChanger
+        :pageSizeOptions="['5', '10', '20', '50']"
+      />
+    </div>
   </div>
 </template>
 

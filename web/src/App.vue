@@ -19,7 +19,7 @@ const fullPageRoutes = ['/login', '/register'];
 
 // 菜单数据
 const menuItems = [
-  { key: 'database', icon: DatabaseOutlined, label: '数据库列表', path: '/database-list' },
+  { key: 'database', icon: DatabaseOutlined, label: '项目列表', path: '/database-list' },
   { key: 'settings', icon: SettingOutlined, label: '个人设置', path: '/personal-settings' },
   { key: 'chatbot', icon: MessageOutlined, label: '聊天机器人', path: '/chatbot' },
   { key: 'records', icon: HistoryOutlined, label: '操作记录', path: '/operation-records' }
@@ -52,7 +52,7 @@ const handleMenuSelect = (e) => {
       </a-menu>
     </a-layout-sider>
     <a-layout>
-      <a-layout-header style="background: #fff; padding: 0 36px">
+      <a-layout-header style="background: #fff; padding: 0 36px; height: 64px; display: flex; align-items: center;">
         <menu-unfold-outlined
           v-if="collapsed"
           class="trigger"
@@ -72,11 +72,12 @@ const handleMenuSelect = (e) => {
 <style>
 #components-layout-demo-custom-trigger .trigger {
   font-size: 18px;
-  line-height: 64px;
   padding: 0 16px 0 0;
   cursor: pointer;
   transition: color 0.3s;
-  float: left;
+  display: flex;
+  align-items: center;
+  height: 100%;
 }
 
 #components-layout-demo-custom-trigger .trigger:hover {

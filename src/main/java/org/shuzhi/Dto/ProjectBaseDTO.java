@@ -6,7 +6,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
-public class ProjectBaseDTO extends DataBaseInfo implements Serializable {
+public class ProjectBaseDTO implements Serializable {
     /**
      * id
      */

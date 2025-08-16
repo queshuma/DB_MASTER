@@ -1,31 +1,33 @@
 package org.shuzhi.Controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import lombok.Getter;
+import org.shuzhi.Config.DatabaseConfig;
+import org.shuzhi.Dto.ProjectBaseDTO;
+import org.shuzhi.Dto.ProjectDatabaseDTO;
+import org.shuzhi.Dto.ProjectFilterDTO;
+import org.shuzhi.Service.DatabaseMetadataService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.sql.SQLException;
+import java.util.List;
 
 @RestController
-@RequestMapping("/api/database")
+@RequestMapping("/project")
 public class DatabaseMetadataController {
-    @Value(value = "minio.endpoint")
-    private String config;
-//    @Autowired
-//    private DatabaseMetadataService metadataService;
+    @Autowired
+    private DatabaseMetadataService metadataService;
 
-//    @PostMapping("/tables")
-//    public List<String> getTables(@RequestBody DatabaseConfig config) throws SQLException, ClassNotFoundException {
-//        return metadataService.getTableNames(config);
-//    }
-//
-//    @PostMapping("/columns")
-//    public Map<String, List<DatabaseMetadataService.ColumnInfo>> getColumns(@RequestBody DatabaseConfig config)
-//            throws SQLException, ClassNotFoundException {
-//        return metadataService.getTableColumns(config);
-//    }
-//
-//    @PostMapping("/checkColumns")
-//    public Map<String, List<DatabaseMetadataService.ColumnInfo>> checkColumns(@RequestBody DatabaseConfig config)
-//            throws SQLException, ClassNotFoundException {
-//        return metadataService.checkColumns(config);
-//    }
+    @PostMapping("/getList")
+    public IPage<ProjectBaseDTO> getProjectList(@RequestBody ProjectFilterDTO projectFilterDTO) {
+        return metadataService.getProjectList(projectFilterDTO);
+    }
+
+    @GetMapping("/getDetail")
+    public ProjectDatabaseDTO getDetail(@RequestParam String projectId) {
+        return metadataService.getDetail(projectId);
+    }
+
 }

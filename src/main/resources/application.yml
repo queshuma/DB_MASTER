@@ -36,6 +36,7 @@ springdoc:
 knife4j:
   enable: true
   setting:
+    enable-swagger-models: true
   basic:
     enable: true
     username: admin

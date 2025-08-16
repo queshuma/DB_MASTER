@@ -3,6 +3,9 @@ package org.shuzhi.Service;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import org.apache.commons.lang3.StringUtils;
 import org.shuzhi.Dto.TableInfo;
 import org.shuzhi.Dto.*;
 import org.shuzhi.Mapper.ColumnInfoMapper;
@@ -16,6 +19,8 @@ import org.shuzhi.PO.ProjectPO;
 import org.shuzhi.PO.ProjectVersionPO;
 import org.shuzhi.PO.TableInfoPO;
 import org.shuzhi.Config.DatabaseConfig;
+import org.shuzhi.Utils.IPageUtils;
+import org.shuzhi.Utils.PageDTO;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Description;
 
@@ -127,10 +132,19 @@ public class DatabaseMetadataService {
         };
     }
 
+    public IPage<ProjectBaseDTO> getProjectList(ProjectFilterDTO projectFilterDTO) {
+        LambdaQueryWrapper<ProjectPO> queryWrapper = new LambdaQueryWrapper<>();
+        if (projectFilterDTO.getProjectName() != null && !projectFilterDTO.getProjectName().isEmpty()) {
+            queryWrapper.eq(Objects.isNull(projectFilterDTO.getProjectName()) && StringUtils.isNotBlank(projectFilterDTO.getProjectName()),ProjectPO::getProjectName, projectFilterDTO.getProjectName());
+        }
+        IPage<ProjectPO> projectIPage = projectInfoMapper.selectPage(new Page<>(projectFilterDTO.getPage(), projectFilterDTO.getSize()), queryWrapper);
+        return projectIPage.convert(ProjectInfoMapstruct.INSTANCE::toProjectBaseDTO);
+    }
+
     @Bean
     @Description("根据编号或名称查询数据库信息")
     public Function<ProjectBaseDTO, ProjectBaseDTO> getProjectDataBase() {
-        return input -> ProjectInfoMapstruct.INSTANCE.toProjectDatabaseDTO(projectInfoMapper.selectOne(new LambdaQueryWrapper<ProjectPO>()
+        return input -> ProjectInfoMapstruct.INSTANCE.toProjectBaseDTO(projectInfoMapper.selectOne(new LambdaQueryWrapper<ProjectPO>()
                 .eq(!Objects.isNull(input.getId()), ProjectPO::getId, input.getId())
                 .eq(!Objects.isNull(input.getProjectName()), ProjectPO::getProjectName, input.getProjectName()))
         );
@@ -401,4 +415,7 @@ public class DatabaseMetadataService {
         );
     }
 
+    public ProjectDatabaseDTO getDetail(String projectId) {
+        return ProjectInfoMapstruct.INSTANCE.toProjectDatabaseDTO(projectInfoMapper.selectById(projectId));
+    }
 }
