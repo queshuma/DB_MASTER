@@ -6,6 +6,7 @@ import router from './router';
 import './style.css';
 import auth from './plugins/auth';
 import store from './store';
+import { DatabaseOutlined, UserOutlined, MessageOutlined, HistoryOutlined } from '@ant-design/icons-vue';
 
 // 登录拦截
 router.beforeEach((to, from, next) => {
@@ -24,4 +25,9 @@ router.beforeEach((to, from, next) => {
 
 const app = createApp(App);
 app.config.globalProperties.$auth = auth;
+// 全局注册图标组件
+app.component('DatabaseOutlined', DatabaseOutlined);
+app.component('UserOutlined', UserOutlined);
+app.component('MessageOutlined', MessageOutlined);
+app.component('HistoryOutlined', HistoryOutlined);
 app.use(router).use(Antd).use(store).mount('#app');

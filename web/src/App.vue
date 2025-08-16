@@ -1,57 +1,39 @@
 <script setup>
-import { ref, watch } from 'vue';
-import { Layout } from 'ant-design-vue';
-import { useRoute, useRouter } from 'vue-router';
-import Sidebar from './components/Sidebar.vue';
-import UserMenu from './components/UserMenu.vue';
-const { Sider, Content, Header } = Layout;
+import { ref } from 'vue';
+import { useRoute } from 'vue-router';
+import { Layout, Menu, MenuItem } from 'ant-design-vue';
+import { DatabaseOutlined, SettingOutlined, MessageOutlined, HistoryOutlined, MenuUnfoldOutlined, MenuFoldOutlined } from '@ant-design/icons-vue';
+import { useRouter } from 'vue-router';
 
 const route = useRoute();
 const router = useRouter();
 
 // 当前选中的菜单项
-const selectedKeys = ref(['chatbot']);
+const selectedKeys = ref(['1']);
+
+// 侧边栏收起状态
+const collapsed = ref(false);
 
 // 需要全屏显示的页面
 const fullPageRoutes = ['/login', '/register'];
 
-// 监听路由变化，更新选中的菜单项
-watch(
-  () => route.path,
-  (newPath) => {
-    const pathMap = {
-      '/chatbot': 'chatbot',
-      '/database-list': 'database',
-      '/personal-settings': 'settings',
-      '/operation-records': 'records'
-    };
-    // 仅在有对应映射时更新selectedKeys
-    if (pathMap[newPath]) {
-      selectedKeys.value = [pathMap[newPath]];
-    } else {
-      selectedKeys.value = [];
-    }
-  },
-  { immediate: true }
-);
+// 菜单数据
+const menuItems = [
+  { key: 'database', icon: DatabaseOutlined, label: '数据库列表', path: '/database-list' },
+  { key: 'settings', icon: SettingOutlined, label: '个人设置', path: '/personal-settings' },
+  { key: 'chatbot', icon: MessageOutlined, label: '聊天机器人', path: '/chatbot' },
+  { key: 'records', icon: HistoryOutlined, label: '操作记录', path: '/operation-records' }
+];
 
-// 监听菜单项变化，更新路由
-watch(
-  selectedKeys,
-  (newKeys) => {
-    const keyMap = {
-      'chatbot': '/chatbot',
-      'database': '/database-list',
-      'settings': '/personal-settings',
-      'records': '/operation-records'
-    };
-    const path = keyMap[newKeys[0]];
-    if (path && route.path !== path && !fullPageRoutes.includes(route.path)) {
-      router.push(path);
-    }
-  },
-  { immediate: true }
-);
+// 处理菜单选择
+const handleMenuSelect = (e) => {
+  const key = e.key;
+  const selectedItem = menuItems.find(item => item.key === key);
+  if (selectedItem) {
+    router.push(selectedItem.path);
+    selectedKeys.value = [key];
+  }
+};
 </script>
 
 <template>
@@ -59,122 +41,81 @@ watch(
     <!-- 全屏页面布局 - 登录和注册页面 -->
     <router-view />
   </div>
-  <Layout v-else style="min-height: 100vh; display: flex; flex-direction: row; width: 100%;">
-    <!-- 左侧导航栏 - 使用拆分后的Sidebar组件 -->
-    <Sider width="256" theme="light" style="box-shadow: 2px 0 6px rgba(0, 21, 41, 0.05);">
-      <Sidebar v-model:selectedKeys="selectedKeys" />
-    </Sider>
-
-    <!-- 主内容区域 -->
-    <Layout style="flex: 1; display: flex; flex-direction: column; width: 100%; padding: 0; overflow: hidden;">
-      <Header style="padding: 0; background: #fff; border-bottom: 1px solid #e8e8e8;">
-        <UserMenu />
-      </Header>
-      <Content style="margin: 24px; padding: 24px; background: #fff; min-height: 280px; border-radius: 4px; flex: 1; width: 100%; box-sizing: border-box;">
+  <a-layout v-else id="components-layout-demo-custom-trigger" style="min-height: 100vh;">
+    <a-layout-sider v-model:collapsed="collapsed" :trigger="null" collapsible>
+      <div class="logo">{{ collapsed ? 'M' : 'DB Master大师' }}</div>
+      <a-menu v-model:selectedKeys="selectedKeys" theme="dark" mode="inline" @select="handleMenuSelect">
+        <a-menu-item v-for="item in menuItems" :key="item.key">
+          <component :is="item.icon" />
+          <span>{{ item.label }}</span>
+        </a-menu-item>
+      </a-menu>
+    </a-layout-sider>
+    <a-layout>
+      <a-layout-header style="background: #fff; padding: 0 36px">
+        <menu-unfold-outlined
+          v-if="collapsed"
+          class="trigger"
+          @click="() => (collapsed = !collapsed)"
+        />
+        <menu-fold-outlined v-else class="trigger" @click="() => (collapsed = !collapsed)" />
+      </a-layout-header>
+      <a-layout-content
+        :style="{ margin: '24px 16px', padding: '24px', background: '#fff', minHeight: '280px' }"
+      >
         <router-view />
-      </Content>
-    </Layout>
-  </Layout>
+      </a-layout-content>
+    </a-layout>
+  </a-layout>
 </template>
 
-<style scoped>
-template {
-  padding: 0%;
-}
-.chat-container {
-  display: flex;
-  flex-direction: column;
-  height: 500px;
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
-  overflow: hidden;
+<style>
+#components-layout-demo-custom-trigger .trigger {
+  font-size: 18px;
+  line-height: 64px;
+  padding: 0 16px 0 0;
+  cursor: pointer;
+  transition: color 0.3s;
+  float: left;
 }
 
-.chat-header {
-  background-color: #1677ff;
-  color: white;
-  padding: 16px;
-  text-align: center;
+#components-layout-demo-custom-trigger .trigger:hover {
+  color: #1890ff;
 }
 
-.chat-messages {
-  flex: 1;
-  padding: 16px;
-  overflow-y: auto;
-  background-color: #f5f5f5;
-}
-
-.message-list {
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.message-item {
-  margin-bottom: 16px;
-  justify-content: flex-start;
-}
-
-.message-bubble {
-  display: flex;
-  align-items: flex-start;
-  max-width: 70%;
-}
-
-.sender-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+#components-layout-demo-custom-trigger .logo {
+  height: 40px;
+  background: linear-gradient(90deg, #1890ff 0%, #096dd9 100%);
+  margin: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: bold;
-  margin-right: 8px;
+  font-size: 16px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.user-avatar {
-  background-color: #1677ff;
+.site-layout .site-layout-background {
+  background: #fff;
 }
 
-.bot-avatar {
-  background-color: #8c8c8c;
+/* 侧边栏菜单样式调整 */
+.ant-menu-inline {
+  padding: 8px 0;
 }
 
-.message-content {
-  padding: 8px 16px;
-  border-radius: 16px;
-  word-break: break-word;
+.ant-menu-item {
+  margin: 4px 0;
+  border-radius: 4px;
 }
 
-.user-message .message-content {
-  background-color: #1677ff;
-  color: white;
-}
-
-.bot-message .message-content {
-  background-color: white;
-  color: #333;
-  border: 1px solid #e8e8e8;
-}
-
-.user-message {
-  flex-direction: row-reverse;
-}
-
-.user-message .sender-avatar {
-  margin-right: 0;
-  margin-left: 8px;
-}
-
-.chat-input-area {
-  display: flex;
-  padding: 16px;
-  background-color: white;
-  border-top: 1px solid #e8e8e8;
-}
-
-.message-input {
-  flex: 1;
-  margin-right: 8px;
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .ant-layout-content {
+    margin: 8px;
+    padding: 16px;
+  }
 }
 </style>

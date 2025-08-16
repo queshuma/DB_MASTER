@@ -206,7 +206,6 @@ onUnmounted(() => {
 .chat-container {
   height: 100%;
   width: 100%;
-  flex: 1;
   display: flex;
   flex-direction: column;
   border: 1px solid #ccc;
@@ -219,11 +218,12 @@ onUnmounted(() => {
 }
 
 .chat-messages {
-  height: calc(100vh - 160px);
+  flex: 1;
   overflow-y: auto;
   padding: 16px;
   background-color: #f5f5f5;
   position: relative;
+  min-height: 0;
 }
 
 .chat-input-area {
