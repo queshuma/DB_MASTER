@@ -5,6 +5,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.shuzhi.Dto.TableInfo;
 import org.shuzhi.Dto.*;
@@ -35,6 +36,7 @@ import java.sql.*;
 import java.sql.Connection;
 
 @Service
+@RequiredArgsConstructor
 public class DatabaseMetadataService {
     private final TableInfoMapper tableInfoMapper;
 
