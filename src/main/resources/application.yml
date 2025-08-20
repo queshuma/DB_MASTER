@@ -20,6 +20,23 @@ spring:
         enabled: true
   config:
     import: nacos:${spring.application.config}.${spring.cloud.nacos.config.file-extension}
+  main:
+    allow-circular-references: true
+  mail:
+    host: smtp.qq.com
+    username: 1428767439@qq.com
+    password: kwidjmrkwypkicge
+    default-encoding: utf-8
+    port: 465
+    properties:
+      smtp:
+        auth: true
+        ssl:
+          enable: true
+        socketFactory:
+          class: javax.net.ssl.SSLSocketFactory
+          debug: true
+    protocol: smtps
 # springdoc-openapi项目配置
 springdoc:
   swagger-ui:

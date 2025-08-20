@@ -32,16 +32,9 @@ const goToRegister = () => {
 <template>
   <div class="auth-links-container">
     <Space v-if="isLoggedIn">
-      <Dropdown trigger="hover">
-        <template #overlay>
-          <Menu>
-            <Menu.Item key="1" @click="logout">退出登录</Menu.Item>
-          </Menu>
-        </template>
-        <Button type="text">
-          {{ userInfo.username || '用户' }}
-        </Button>
-      </Dropdown>
+      <div class="user-menu" @click="() => {}">
+        {{ userInfo.username || '用户' }}
+      </div>
     </Space>
     <Space v-else>
       <Button type="default" @click="goToLogin">登录</Button>
@@ -57,5 +50,18 @@ const goToRegister = () => {
   padding: 16px;
   background-color: #f5f5f5;
   border-bottom: 1px solid #e8e8e8;
+}
+
+/* 为用户名按钮添加光标样式 - 使用更具体的选择器 */
+.user-menu {
+  padding: 8px 16px;
+  cursor: pointer !important;
+  color: #1890ff;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.user-menu:hover {
+  background-color: #f0f7ff;
 }
 </style>

@@ -4,6 +4,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.shuzhi.Common.ResponseResult;
 import org.shuzhi.Common.ResultCode;
+import org.shuzhi.Dto.UserBaseDTO;
 import org.shuzhi.Dto.UserRegisterDTO;
 import org.shuzhi.Mapper.SysUserInfoMapper;
 import org.shuzhi.Mapstruct.SysUserInfoMapstruct;
@@ -51,5 +52,26 @@ public class SysUserService {
         sysUserInfoPO.setRole(null);
         sysUserInfoPO.setPermission(null);
         sysUserInfoMapper.insert(sysUserInfoPO);
+    }
+
+    public UserBaseDTO getUserInfo() {
+        SysUserInfoPO sysUserInfoPO = sysUserInfoMapper.selectById(StpUtil.getLoginId().toString());
+        return SysUserInfoMapstruct.INSTANCE.toUserBaseDTO(sysUserInfoPO);
+    }
+
+    public void modifyUserInfo(UserBaseDTO userBaseDTO) {
+        SysUserInfoPO sysUserInfoPO = SysUserInfoMapstruct.INSTANCE.toSysUserInfoPO(userBaseDTO);
+        userBaseDTO.setId(StpUtil.getLoginId().toString());
+        sysUserInfoMapper.updateById(sysUserInfoPO);
+    }
+
+    public String getAvatarImage() {
+        return sysUserInfoMapper.selectById(StpUtil.getLoginId().toString()).getAvatar();
+    }
+
+    public void uploadAvatar(String fileName) {
+        SysUserInfoPO sysUserInfoPO = sysUserInfoMapper.selectById(StpUtil.getLoginId().toString());
+        sysUserInfoPO.setAvatar(fileName);
+        sysUserInfoMapper.updateById(sysUserInfoPO);
     }
 }

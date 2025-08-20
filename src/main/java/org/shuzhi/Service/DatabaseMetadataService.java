@@ -36,7 +36,6 @@ import java.sql.*;
 import java.sql.Connection;
 
 @Service
-@RequiredArgsConstructor
 public class DatabaseMetadataService {
     private final TableInfoMapper tableInfoMapper;
 

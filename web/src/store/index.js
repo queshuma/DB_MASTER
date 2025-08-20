@@ -10,10 +10,12 @@ const store = createStore({
   mutations: {
     setUserInfo(state, userInfo) {
       state.userInfo = userInfo;
+      localStorage.setItem('userInfo', JSON.stringify(userInfo));
       console.log(userInfo)
     },
     clearUserInfo(state) {
       state.userInfo = null;
+      localStorage.removeItem('userInfo');
     },
   },
   actions: {

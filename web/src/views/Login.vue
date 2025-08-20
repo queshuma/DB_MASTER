@@ -32,12 +32,24 @@ const login = async () => {
       console.log(response.resultCode)
       if (response.resultCode === '200') {
           // 保存token到本地存储
-          // localStorage.setItem('token', response.token);
+          localStorage.setItem('token', response.token || 'dummy-token');
           // 存储用户信息到store
           store.commit('setUserInfo', response.result);
           isButtonDisabled.value = true;
           message.success('登录成功');
-          router.push('/chatbot');
+          console.log('登录成功，准备跳转');
+          console.log('当前路由:', router.currentRoute.value);
+          console.log('尝试跳转的路由:', '/database-list');
+          
+          // 尝试使用replace代替push
+          setTimeout(() => {
+            try {
+              router.replace('/database-list');
+              console.log('replace跳转已执行');
+            } catch (err) {
+              console.error('replace跳转失败:', err);
+            }
+          }, 500);
         } else {
         message.error(response.resultMsg);
       }

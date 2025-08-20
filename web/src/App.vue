@@ -1,12 +1,14 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { Layout, Menu, MenuItem } from 'ant-design-vue';
-import { DatabaseOutlined, SettingOutlined, MessageOutlined, HistoryOutlined, MenuUnfoldOutlined, MenuFoldOutlined } from '@ant-design/icons-vue';
+import { Layout, Menu, MenuItem, Dropdown } from 'ant-design-vue';
+import { DatabaseOutlined, SettingOutlined, MessageOutlined, HistoryOutlined, MenuUnfoldOutlined, MenuFoldOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons-vue';
 import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 
 const route = useRoute();
 const router = useRouter();
+const store = useStore();
 
 // 当前选中的菜单项
 const selectedKeys = ref(['1']);
@@ -24,6 +26,32 @@ const menuItems = [
   { key: 'chatbot', icon: MessageOutlined, label: '聊天机器人', path: '/chatbot' },
   { key: 'records', icon: HistoryOutlined, label: '操作记录', path: '/operation-records' }
 ];
+
+// 用户菜单数据
+const userMenuItems = [
+  {
+    key: 'logout',
+    label: '退出登录',
+    icon: LogoutOutlined,
+  },
+];
+
+// 计算属性 - 是否登录
+const isLoggedIn = computed(() => {
+  return store.getters.isLoggedIn;
+});
+
+// 计算属性 - 用户信息
+const userInfo = computed(() => {
+  return store.getters.userInfo;
+});
+
+// 处理退出登录
+const handleLogout = () => {
+  store.commit('clearUserInfo');
+  localStorage.removeItem('token');
+  router.push('/login');
+};
 
 // 处理菜单选择
 const handleMenuSelect = (e) => {
@@ -52,13 +80,23 @@ const handleMenuSelect = (e) => {
       </a-menu>
     </a-layout-sider>
     <a-layout>
-      <a-layout-header style="background: #fff; padding: 0 36px; height: 64px; display: flex; align-items: center;">
-        <menu-unfold-outlined
-          v-if="collapsed"
-          class="trigger"
-          @click="() => (collapsed = !collapsed)"
-        />
-        <menu-fold-outlined v-else class="trigger" @click="() => (collapsed = !collapsed)" />
+      <a-layout-header style="background: #fff; padding: 0 36px; height: 64px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center;">
+          <menu-unfold-outlined
+            v-if="collapsed"
+            class="trigger"
+            @click="() => (collapsed = !collapsed)"
+          />
+          <menu-fold-outlined v-else class="trigger" @click="() => (collapsed = !collapsed)" />
+        </div>
+        <div v-if="isLoggedIn">
+          <dropdown :menu-items="userMenuItems" placement="bottomRight" @select="handleLogout">
+            <button class="user-nickname-btn">
+              <user-outlined style="margin-right: 8px;" />
+              <span>{{ userInfo.nickname || userInfo.username }}</span>
+            </button>
+          </dropdown>
+        </div>
       </a-layout-header>
       <a-layout-content
         :style="{ margin: '24px 16px', padding: '24px', background: '#fff', minHeight: '280px' }"
@@ -100,6 +138,23 @@ const handleMenuSelect = (e) => {
 
 .site-layout .site-layout-background {
   background: #fff;
+}
+
+/* 用户昵称按钮样式 */
+.user-nickname-btn {
+  display: flex;
+  align-items: center;
+  border: none;
+  background: none;
+  padding: 12px 16px;
+  height: 40px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.user-nickname-btn:hover {
+  background-color: #f0f2f5;
 }
 
 /* 侧边栏菜单样式调整 */

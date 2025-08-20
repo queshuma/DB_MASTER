@@ -43,6 +43,8 @@ public class SysUserInfoPO implements Serializable {
 
     private String role;
 
+    private String avatar;
+
     /**
      * 状态 0:禁用 1:正常
      */

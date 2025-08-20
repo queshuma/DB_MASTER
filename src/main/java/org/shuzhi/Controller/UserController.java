@@ -1,8 +1,10 @@
 package org.shuzhi.Controller;
 
-import cn.dev33.satoken.stp.StpUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import org.shuzhi.Common.ResponseResult;
+import org.shuzhi.Dto.UserBaseDTO;
 import org.shuzhi.Dto.UserRegisterDTO;
+import org.shuzhi.Service.MINIOFileService;
 import org.shuzhi.Service.SysUserService;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,9 +13,11 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final SysUserService sysUserService;
+    private final MINIOFileService minIOService;
 
-    public UserController(SysUserService sysUserService) {
+    public UserController(SysUserService sysUserService, MINIOFileService minIOService) {
         this.sysUserService = sysUserService;
+        this.minIOService = minIOService;
     }
 
     @GetMapping("/login")
@@ -33,5 +37,31 @@ public class UserController {
     @RequestMapping("/logout")
     public String logout() {
         return sysUserService.logout();
+    }
+
+    /**
+     * 获取用户信息
+     * @return
+     */
+    @GetMapping("/getUserInfo")
+    public UserBaseDTO getUserInfo() {
+        return sysUserService.getUserInfo();
+    }
+
+    /**
+     * 修改用户信息
+     * @return
+     */
+    @PostMapping("/modifyUserInfo")
+    public void modifyUserInfo(@RequestBody UserBaseDTO userBaseDTO) {
+        sysUserService.modifyUserInfo(userBaseDTO);
+    }
+
+    @GetMapping("/getAvatarImage")
+    public void uploadFile(HttpServletResponse response) throws Exception {
+        String avatarName = sysUserService.getAvatarImage();
+        if (avatarName != null) {
+            minIOService.getFileUrl("db-master-bucket", avatarName, response);
+        }
     }
 }
