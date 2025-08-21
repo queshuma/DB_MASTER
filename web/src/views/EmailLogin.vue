@@ -96,8 +96,9 @@ link("/user/loginByEmail", 'GET',{}, {
             }
           }, 500);
         } else {
-        message.error(response.resultMsg);
-      }
+          console.log(response);
+          message.error(response.resultMsg);
+        }
     })
 };
 </script>

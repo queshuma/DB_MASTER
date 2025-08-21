@@ -46,13 +46,10 @@ public class SysUserService {
         if (userInfo.size() != 1) {
             return new ResponseResult<>(ResultCode.LOGIN_ERROR, "登录失败: 用户信息有误");
         }
-        if (userInfo.size() == 1) {
-            StpUtil.login(userInfo.get(0).getId());
-            return new ResponseResult<>(ResultCode.SUCCESS, userInfo.get(0));
-        }
-        if (!dynamicPassword.equals(redisTemplate.opsForSet().pop(email))) {
+        if (!dynamicPassword.equals(redisTemplate.opsForValue().get(email))) {
             return new ResponseResult<>(ResultCode.LOGIN_FAIL, "登录失败: 验证码错误");
         }
+        StpUtil.login(userInfo.get(0).getId());
         redisTemplate.opsForSet().remove(email);
         return new ResponseResult<>(ResultCode.SUCCESS, userInfo.get(0));
     }
