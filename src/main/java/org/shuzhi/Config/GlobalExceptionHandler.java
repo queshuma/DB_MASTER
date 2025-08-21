@@ -1,5 +1,6 @@
 package org.shuzhi.Config;
 
+import cn.dev33.satoken.exception.NotLoginException;
 import cn.dev33.satoken.util.SaResult;
 import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -14,8 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Hidden
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    // 全局异常拦截
-    @ExceptionHandler
+    @ExceptionHandler(Exception.class)
     public SaResult handlerException(Exception e) {
         e.printStackTrace();
         return SaResult.error(e.getMessage());

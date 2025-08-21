@@ -2,9 +2,10 @@
 import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { Layout, Menu, MenuItem, Dropdown } from 'ant-design-vue';
-import { DatabaseOutlined, SettingOutlined, MessageOutlined, HistoryOutlined, MenuUnfoldOutlined, MenuFoldOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons-vue';
+import { DatabaseOutlined, SettingOutlined, MessageOutlined, HistoryOutlined, MenuUnfoldOutlined, MenuFoldOutlined } from '@ant-design/icons-vue';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
+import UserMenu from './components/UserMenu.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -17,7 +18,7 @@ const selectedKeys = ref(['1']);
 const collapsed = ref(false);
 
 // 需要全屏显示的页面
-const fullPageRoutes = ['/login', '/register'];
+const fullPageRoutes = ['/login', '/register', '/email-login'];
 
 // 菜单数据
 const menuItems = [
@@ -27,32 +28,11 @@ const menuItems = [
   { key: 'records', icon: HistoryOutlined, label: '操作记录', path: '/operation-records' }
 ];
 
-// 用户菜单数据
-const userMenuItems = [
-  {
-    key: 'logout',
-    label: '退出登录',
-    icon: LogoutOutlined,
-  },
-];
+// 计算属性 - 是否登录已移除
+// 计算属性 - 用户信息已移除
+// 处理退出登录方法已移除
 
-// 计算属性 - 是否登录
-const isLoggedIn = computed(() => {
-  return store.getters.isLoggedIn;
-});
-
-// 计算属性 - 用户信息
-const userInfo = computed(() => {
-  return store.getters.userInfo;
-});
-
-// 处理退出登录
-const handleLogout = () => {
-  store.commit('clearUserInfo');
-  localStorage.removeItem('token');
-  router.push('/login');
-};
-
+// 注：如需退出登录功能，请在其他位置实现
 // 处理菜单选择
 const handleMenuSelect = (e) => {
   const key = e.key;
@@ -89,14 +69,7 @@ const handleMenuSelect = (e) => {
           />
           <menu-fold-outlined v-else class="trigger" @click="() => (collapsed = !collapsed)" />
         </div>
-        <div v-if="isLoggedIn">
-          <dropdown :menu-items="userMenuItems" placement="bottomRight" @select="handleLogout">
-            <button class="user-nickname-btn">
-              <user-outlined style="margin-right: 8px;" />
-              <span>{{ userInfo.nickname || userInfo.username }}</span>
-            </button>
-          </dropdown>
-        </div>
+        <UserMenu />
       </a-layout-header>
       <a-layout-content
         :style="{ margin: '24px 16px', padding: '24px', background: '#fff', minHeight: '280px' }"

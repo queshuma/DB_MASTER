@@ -1,17 +1,24 @@
 package org.shuzhi.Service;
 
+import com.sun.tools.jconsole.JConsoleContext;
 import org.apache.commons.lang3.StringUtils;
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     private final String FROM_EMAIL = "1428767439@qq.com";
 
@@ -28,11 +35,25 @@ public class EmailService {
     public void sendSimpleMail(String email) {
 
         SimpleMailMessage message = new SimpleMailMessage();
+        String verificationCode = generateVerificationCode();
         message.setFrom(FROM_EMAIL);
         message.setTo(email);
         message.setSubject(SENT_TITLE);
-        message.setText(String.format(SENT_CONTENT, generateVerificationCode()));
-        mailSender.send(message);
+        message.setText(String.format(SENT_CONTENT, verificationCode));
+        // 暂时注销
+//        try {
+//            mailSender.send(message);
+//        } catch (Exception e) {
+//            throw new RuntimeException("发送邮件失败");
+//        }
+        try {
+            redisTemplate.opsForSet().add(email, verificationCode);
+            redisTemplate.expire(email, 5, TimeUnit.MINUTES);
+            System.out.println("动态密码保存成功 ==>> " + email + " " + verificationCode);
+        } catch (Exception e) {
+            System.out.println(e);
+            throw new RuntimeException("保存验证码失败");
+        }
     }
 
     /**

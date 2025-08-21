@@ -24,7 +24,7 @@ import link from './link/Link.js';
 // 登录拦截和用户信息初始化
 router.beforeEach((to, from, next) => {
   // 不需要登录的页面
-  const publicPages = ['/register','/login'];
+  const publicPages = ['/register','/login', '/email-login'];
   const authRequired = !publicPages.includes(to.path);
   const loggedIn = localStorage.getItem('token');
   const hasUserInfo = store.getters.isLoggedIn;

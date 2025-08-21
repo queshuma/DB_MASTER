@@ -20,9 +20,26 @@ public class UserController {
         this.minIOService = minIOService;
     }
 
+    /**
+     * 通过账密登录
+     * @param username
+     * @param password
+     * @return
+     */
     @GetMapping("/login")
     public ResponseResult<Object> login(@RequestParam String username, @RequestParam String password) {
         return sysUserService.login(username, password);
+    }
+
+    /**
+     * 通过邮箱动态登录
+     * @param email
+     * @param dynamicPassword
+     * @return
+     */
+    @GetMapping("/loginByEmail")
+    public ResponseResult<Object> loginByEmail(@RequestParam String email, @RequestParam String dynamicPassword) {
+        return sysUserService.loginByEmail(email, dynamicPassword);
     }
 
     @PostMapping("/register")
@@ -57,6 +74,11 @@ public class UserController {
         sysUserService.modifyUserInfo(userBaseDTO);
     }
 
+    /**
+     * 获取用户头像
+     * @param response
+     * @throws Exception
+     */
     @GetMapping("/getAvatarImage")
     public void uploadFile(HttpServletResponse response) throws Exception {
         String avatarName = sysUserService.getAvatarImage();

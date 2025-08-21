@@ -92,6 +92,9 @@ const login = async () => {
       <div class="register-link">
         还没有账号？<router-link to="/register">立即注册</router-link>
       </div>
+      <div class="register-link">
+        使用邮箱登录？<router-link to="/email-login">前往邮箱登录</router-link>
+      </div>
     </div>
   </div>
 </template>

@@ -27,6 +27,12 @@ service.interceptors.request.use(
 // 响应拦截器
 service.interceptors.response.use(
     response => {
+        if(response.data.code === 401) {
+            // 清除本地存储的token
+            localStorage.removeItem('token');
+            // 重定向到登录页面
+            window.location.href = '/login';
+        }
         // 对响应数据做点什么
         return response.data;
     },

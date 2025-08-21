@@ -37,6 +37,13 @@ spring:
           class: javax.net.ssl.SSLSocketFactory
           debug: true
     protocol: smtps
+#  cache:
+#    type: redis
+  data:
+    redis:
+      host: 49.232.61.41
+      port: 6379
+      password: redisadmin
 # springdoc-openapi项目配置
 springdoc:
   swagger-ui:

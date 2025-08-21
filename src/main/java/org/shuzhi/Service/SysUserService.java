@@ -9,22 +9,22 @@ import org.shuzhi.Dto.UserRegisterDTO;
 import org.shuzhi.Mapper.SysUserInfoMapper;
 import org.shuzhi.Mapstruct.SysUserInfoMapstruct;
 import org.shuzhi.PO.SysUserInfoPO;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 public class SysUserService {
 
     private final SysUserInfoMapper sysUserInfoMapper;
 
+    private final RedisTemplate redisTemplate;
 
-    public SysUserService(SysUserInfoMapper sysUserInfoMapper) {
+
+    public SysUserService(SysUserInfoMapper sysUserInfoMapper, RedisTemplate redisTemplate) {
         this.sysUserInfoMapper = sysUserInfoMapper;
+        this.redisTemplate = redisTemplate;
     }
 
     public ResponseResult<Object> login(String username, String password) {
@@ -38,7 +38,23 @@ public class SysUserService {
             return new ResponseResult<>(ResultCode.SUCCESS, userInfo.get(0));
         }
         return new ResponseResult<>(ResultCode.LOGIN_FAIL, "登录失败: 请联系管理员");
+    }
 
+    public ResponseResult<Object> loginByEmail(String email, String dynamicPassword) {
+        List<SysUserInfoPO> userInfo = sysUserInfoMapper.selectList(new LambdaQueryWrapper<SysUserInfoPO>()
+                .eq(SysUserInfoPO::getEmail, email).select(SysUserInfoPO::getId, SysUserInfoPO::getUsername, SysUserInfoPO::getTelephone, SysUserInfoPO::getEmail));
+        if (userInfo.size() != 1) {
+            return new ResponseResult<>(ResultCode.LOGIN_ERROR, "登录失败: 用户信息有误");
+        }
+        if (userInfo.size() == 1) {
+            StpUtil.login(userInfo.get(0).getId());
+            return new ResponseResult<>(ResultCode.SUCCESS, userInfo.get(0));
+        }
+        if (!dynamicPassword.equals(redisTemplate.opsForSet().pop(email))) {
+            return new ResponseResult<>(ResultCode.LOGIN_FAIL, "登录失败: 验证码错误");
+        }
+        redisTemplate.opsForSet().remove(email);
+        return new ResponseResult<>(ResultCode.SUCCESS, userInfo.get(0));
     }
 
     public String logout() {
@@ -74,4 +90,5 @@ public class SysUserService {
         sysUserInfoPO.setAvatar(fileName);
         sysUserInfoMapper.updateById(sysUserInfoPO);
     }
+
 }

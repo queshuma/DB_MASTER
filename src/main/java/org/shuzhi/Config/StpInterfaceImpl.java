@@ -25,7 +25,7 @@ public class StpInterfaceImpl implements StpInterface {
     @Override
     public List<String> getPermissionList(Object loginId, String loginType) {
         List<String> list = new ArrayList<>();
-        // 设置权限吗集合
+        // 设置权限码集合
         sysUserUtils.getPermission().get(loginId).forEach(list::add);
         return list;
     }

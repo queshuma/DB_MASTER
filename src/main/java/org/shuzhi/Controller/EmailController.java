@@ -1,6 +1,7 @@
 package org.shuzhi.Controller;
 
 import org.shuzhi.Service.EmailService;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -15,6 +16,7 @@ public class EmailController {
         this.emailService = emailService;
     }
 
+    @Async
     @GetMapping("/sendEmail")
     public void sendEmail(@RequestParam String email) {
         emailService.sendSimpleMail(email);
