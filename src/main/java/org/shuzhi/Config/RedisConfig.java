@@ -1,10 +1,17 @@
 package org.shuzhi.Config;
 
+import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.embedding.TokenCountBatchingStrategy;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.redis.RedisVectorStore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import redis.clients.jedis.JedisPooled;
 
 @Configuration
 public class RedisConfig {
@@ -23,4 +30,14 @@ public class RedisConfig {
         template.afterPropertiesSet();
         return template;
     }
+
+
+//    @Bean
+//    public RedisVectorStore vectorStore(RedisConnectionFactory redisConnectionFactory, EmbeddingModel embeddingModel) {
+//        return RedisVectorStore.builder(redisConnectionFactory, embeddingModel)
+//                .initializeSchema(true) // 根据您的配置
+//                .indexName("custom-index") // 根据您的配置
+//                .prefix("custom-prefix") // 根据您的配置
+//                .build();
+//    }
 }

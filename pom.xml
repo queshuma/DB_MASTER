@@ -28,6 +28,25 @@
                 <enabled>false</enabled>
             </snapshots>
         </repository>
+        <repository>
+            <id>spring-snapshots</id>
+            <name>Spring Snapshots</name>
+            <url>https://repo.spring.io/snapshot</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+        </repository>
+        <repository>
+            <name>Central Portal Snapshots</name>
+            <id>central-portal-snapshots</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
     </repositories>
     <dependencies>
 <!--        <dependency>-->
@@ -86,22 +105,14 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
-<!--        spring-ai中使用nacos的配置和原nacos配置不一致，暂时使用统一的配置-->
         <dependency>
-            <groupId>com.alibaba.cloud.ai</groupId>
-            <artifactId>spring-ai-alibaba-starter</artifactId>
-            <version>1.0.0-M5.1</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.alibaba.nacos</groupId>
-                    <artifactId>nacos-client-mse-extension</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.alibaba.cloud</groupId>
-                    <artifactId>spring-alibaba-nacos-config</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-zhipuai</artifactId>
         </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.ai</groupId>-->
+<!--            <artifactId>spring-ai-starter-model-chat-memory-repository-cassandra</artifactId>-->
+<!--        </dependency>-->
 <!--        sa-token鉴权-->
         <dependency>
             <groupId>cn.dev33</groupId>
@@ -126,6 +137,18 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-vector-store-redis</artifactId>
+        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.ai</groupId>-->
+<!--            <artifactId>spring-ai-redis-store-spring-boot-starter</artifactId>-->
+<!--        </dependency>-->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-advisors-vector-store</artifactId>
+        </dependency>
     </dependencies>
     <dependencyManagement>
 <!--        <dependencies>-->
@@ -137,6 +160,15 @@
 <!--                <scope>import</scope>-->
 <!--            </dependency>-->
 <!--        </dependencies>-->
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>1.0.1</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
     </dependencyManagement>
 
     <build>

@@ -4,10 +4,30 @@ spring:
   application:
     name: DB_Master
     config: db_master_config
+  #  cache:
+  #    type: redis
+  data:
+    redis:
+      host: 49.232.61.41
+      port: 6379
+      password: redisadmin
   ai:
+    zhipuai:
+      api-key: e6c75ac4eeda47a1a426501e371bbda3.u5Xnrt5MGhKDAxgt
+      chat:
+        options:
+          model: GLM-4.5-Air
+      embedding:
+        options:
+          model: embedding-2
     retry:
       backoff:
         initial-interval: 1000ms
+    vectorstore:
+      redis:
+        initialize-schema: true
+        index-name: custom-index
+        prefix: custom-prefix
   cloud:
     nacos:
       config:
@@ -37,13 +57,6 @@ spring:
           class: javax.net.ssl.SSLSocketFactory
           debug: true
     protocol: smtps
-#  cache:
-#    type: redis
-  data:
-    redis:
-      host: 49.232.61.41
-      port: 6379
-      password: redisadmin
 # springdoc-openapi项目配置
 springdoc:
   swagger-ui:

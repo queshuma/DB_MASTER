@@ -22,7 +22,7 @@ import org.shuzhi.PO.TableInfoPO;
 import org.shuzhi.Config.DatabaseConfig;
 import org.shuzhi.Utils.IPageUtils;
 import org.shuzhi.Utils.PageDTO;
-import org.springframework.context.annotation.Bean;
+import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.context.annotation.Description;
 
 import java.time.format.DateTimeFormatter;
@@ -35,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.*;
 import java.sql.Connection;
 
+@RequiredArgsConstructor
 @Service
 public class DatabaseMetadataService {
     private final TableInfoMapper tableInfoMapper;
@@ -44,13 +45,6 @@ public class DatabaseMetadataService {
     private final ColumnInfoMapper columnInfoMapper;
 
     private final ProjectVersionMapper projectVersionMapper;
-
-    public DatabaseMetadataService(TableInfoMapper tableInfoMapper, ProjectInfoMapper projectInfoMapper, ColumnInfoMapper columnInfoMapper, ProjectVersionMapper projectVersionMapper) {
-        this.tableInfoMapper = tableInfoMapper;
-        this.projectInfoMapper = projectInfoMapper;
-        this.columnInfoMapper = columnInfoMapper;
-        this.projectVersionMapper = projectVersionMapper;
-    }
 
     public List<String> getTableNames(DatabaseConfig config) throws SQLException, ClassNotFoundException {
         List<String> tableNames = new ArrayList<>();
@@ -99,30 +93,26 @@ public class DatabaseMetadataService {
         return tableInfos;
     }
 
-    @Bean
-    @Description("创建项目")
-    public Function<CreateProjectDTO, ProjectPO> createProject() {
-        return input -> {
-            ProjectPO projectPO = ProjectInfoMapstruct.INSTANCE.createToProjectPO(input);
+//    @Description("创建项目")
+    @Tool(description = "创建项目")
+    public ProjectPO createProject(CreateProjectDTO createProjectDTO) {
+            ProjectPO projectPO = ProjectInfoMapstruct.INSTANCE.createToProjectPO(createProjectDTO);
             projectPO.setBackCount(0);
             projectInfoMapper.insert(projectPO);
             return projectPO;
-        };
     }
 
-    @Bean
-    @Description("配置数据库")
-    public Function<ProjectDatabaseDTO, String> updateProjectData() {
-        return input -> {
+//    @Description("配置数据库")
+    @Tool(description = "配置数据库")
+    public String updateProjectData(ProjectDatabaseDTO input) {
             projectInfoMapper.updateById(ProjectInfoMapstruct.INSTANCE.updateToProjectPO(input));
             return input.getProjectName();
-        };
     }
 
-    @Bean
-    @Description("查询项目列表")
-    public Function<Object, String> getProjectList() {
-        return input -> {
+//    @Description("查询项目列表")
+    @Tool(description = "查询项目列表")
+    public String getProjectList(ProjectDatabaseDTO input) {
+
             List<ProjectPO> projectPOList = projectInfoMapper.selectList(new LambdaQueryWrapper<>());
             if (projectPOList.isEmpty()) {new ArrayList<>();}
             List<ProjectBaseDTO> projectBaseDTOList = ProjectInfoMapstruct.INSTANCE.toProjectDTOList(projectPOList);
@@ -130,7 +120,6 @@ public class DatabaseMetadataService {
                 return "当前没有项目数据";
             }
             return JSONObject.toJSONString(projectBaseDTOList);
-        };
     }
 
     public IPage<ProjectBaseDTO> getProjectList(ProjectFilterDTO projectFilterDTO) {
@@ -142,27 +131,25 @@ public class DatabaseMetadataService {
         return projectIPage.convert(ProjectInfoMapstruct.INSTANCE::toProjectBaseDTO);
     }
 
-    @Bean
-    @Description("根据编号或名称查询数据库信息")
-    public Function<ProjectBaseDTO, ProjectBaseDTO> getProjectDataBase() {
-        return input -> ProjectInfoMapstruct.INSTANCE.toProjectBaseDTO(projectInfoMapper.selectOne(new LambdaQueryWrapper<ProjectPO>()
+//    @Description("根据编号或名称查询数据库信息")
+    @Tool(description = "根据编号或名称查询数据库信息")
+    public ProjectBaseDTO getProjectDataBase(ProjectBaseDTO input) {
+        return ProjectInfoMapstruct.INSTANCE.toProjectBaseDTO(projectInfoMapper.selectOne(new LambdaQueryWrapper<ProjectPO>()
                 .eq(!Objects.isNull(input.getId()), ProjectPO::getId, input.getId())
-                .eq(!Objects.isNull(input.getProjectName()), ProjectPO::getProjectName, input.getProjectName()))
-        );
+                .eq(!Objects.isNull(input.getProjectName()), ProjectPO::getProjectName, input.getProjectName())));
     }
 
-    @Bean
-    @Description("根据编号或名称查询备份记录")
-    public Function<ProjectBaseDTO, List<ProjectVersionPO>> getProjectHistory() {
-        return input -> ProjectInfoMapstruct.INSTANCE.toProjectVersionList(projectVersionMapper.selectList(new LambdaQueryWrapper<ProjectVersionPO>()
+//    @Description("根据编号或名称查询备份记录")
+    @Tool(description = "根据编号或名称查询备份记录")
+    public List<ProjectVersionPO> getProjectHistory(ProjectBaseDTO input) {
+        return ProjectInfoMapstruct.INSTANCE.toProjectVersionList(projectVersionMapper.selectList(new LambdaQueryWrapper<ProjectVersionPO>()
                 .eq(!Objects.isNull(input.getId()), ProjectVersionPO::getSourceId, input.getId())
                 .eq(!Objects.isNull(input.getProjectName()), ProjectVersionPO::getProjectName, input.getProjectName())));
     }
 
-    @Bean
-    @Description("根据数据库查询表")
-    public Function<DatabaseConfig, List<TableInfo>> getDataTableList() {
-        return input -> {
+//    @Description("根据数据库查询表")
+    @Tool(description = "根据数据库查询表")
+    public List<TableInfo> getDataTableList(DatabaseConfig input) {
             try {
                 return this.getTableInfo(input);
             } catch (SQLException e) {
@@ -170,7 +157,6 @@ public class DatabaseMetadataService {
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException(e);
             }
-        };
     }
 
     /**
@@ -180,11 +166,10 @@ public class DatabaseMetadataService {
      * @throws ClassNotFoundException
      */
 
-    @Bean
-    @Description("备份项目数据结构")
+//    @Description("备份项目数据结构")
+    @Tool(description = "备份项目数据结构")
     @Transactional(rollbackFor = Exception.class)
-    public Function<DatabaseConfig, List<String>> backupData() {
-        return input -> {
+    public List<String> backupData(DatabaseConfig input) {
             // 返回内容
             List<String> result = new ArrayList<>();
             DatabaseConfig config = input;
@@ -237,13 +222,11 @@ public class DatabaseMetadataService {
                 throw new RuntimeException(e);
             }
             return result;
-        };
     }
 
-    @Bean
-    @Description("比较两个版本的数据表的差异")
-    public Function<VersionCompareDTO, List<String>> compareTable() {
-        return input -> {
+//    @Description("比较两个版本的数据表的差异")
+    @Tool(description = "比较两个版本的字段的差异")
+    public List<String> compareTable(VersionCompareDTO input) {
             List<String> versionList = Arrays.asList(input.getOldVersion(), input.getNewVersion());
             boolean exists = projectVersionMapper.exists(new LambdaQueryWrapper<ProjectVersionPO>().eq(ProjectVersionPO::getProjectName, input.getProjectName()).in(ProjectVersionPO::getVersion, versionList));
             if (versionList.size() != 2) {
@@ -291,12 +274,11 @@ public class DatabaseMetadataService {
             }
 
             return differences;
-        };
 
     };
 
-    @Bean
-    @Description("比较两个版本的字段的差异")
+//    @Description("比较两个版本的字段的差异")
+    @Tool(description = "比较两个版本的字段的差异")
     public Function<VersionCompareDTO, List<String>> compareColumn() {
         return input -> {
             List<String> versionList = Arrays.asList(input.getOldVersion(), input.getNewVersion());

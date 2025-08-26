@@ -1,6 +1,8 @@
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted } from 'vue';
 import MarkdownIt from 'markdown-it';
+import { linkStream } from '../link/Link';
+import link from '../link/Link';
 
 // 创建Markdown实例并配置以更好地处理空行
 const md = new MarkdownIt({
@@ -61,37 +63,45 @@ const sendMessage = async () => {
   });
 
   try {
-    abortController = new AbortController();
-    const params = new URLSearchParams();
-    params.append('message', userInput);
-    console.log('发送请求到:', `/api/database/ai/generateStreamAsString?${params}`);
-    const response = await fetch(`http://localhost:8000/api/database/ai/generateStreamAsString?${params}`, {
-      method: 'GET',
-      headers: {
-        'accept': 'text/event-stream'
-      },
-      signal: abortController.signal
-    });
+    console.log('发送流式请求到: /api/database/ai/generateStreamAsString');
+    
+    // 使用linkStream函数发送请求
+    const { response, abortController: streamAbortController } = await linkStream(
+      '/api/database/ai/generateStreamAsString', 
+      'GET', 
+      {}, 
+      { message: userInput }, 
+      { 'accept': 'text/event-stream' },
+      true
+    );
+    
+    // 保存abortController引用以便后续取消请求
+    abortController = streamAbortController;
+    
+    // 记录cookie相关信息
+    console.log('流式请求成功发送，withCredentials已启用');
+    console.log('Response Set-Cookie:', response.headers.get('set-cookie'));
 
     if (!response.ok) {
-      throw new Error(`请求失败: ${response.status} ${response.statusText} (${response.url})`);
+      throw new Error(`请求失败: ${response.status} ${response.statusText}`);
     }
 
+    // 流式处理响应
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     const botMessage = messages.value.find(m => m.id === botMsgId);
     let complete = false;
 
-    while (!complete) {
+    while (!complete && !abortController.signal.aborted) {
       const { done, value } = await reader.read();
       if (done) break;
 
       const chunk = decoder.decode(value, { stream: true });
       if (botMessage) {
-        // 使用正则全局替换所有'data:'前缀
+        // 处理流式数据
         let messageContent = chunk.replace(/data:/g, '').trim();
-        // 移除CSS样式文本
         messageContent = messageContent.replace(/white-space:\s*['"]?pre-wrap['"]?;/gi, '').trim();
+        
         // 移除可能重复的用户输入前缀
         if (messageContent.startsWith(userInput)) {
           messageContent = messageContent.slice(userInput.length).trim();
