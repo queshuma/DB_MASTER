@@ -5,7 +5,6 @@ spring:
     name: DB_Master
     config: db_master_config
   #  cache:
-  #    type: redis
   data:
     redis:
       host: 49.232.61.41

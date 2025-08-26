@@ -9,6 +9,8 @@ import org.shuzhi.Dto.UserRegisterDTO;
 import org.shuzhi.Mapper.SysUserInfoMapper;
 import org.shuzhi.Mapstruct.SysUserInfoMapstruct;
 import org.shuzhi.PO.SysUserInfoPO;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -20,7 +22,6 @@ public class SysUserService {
     private final SysUserInfoMapper sysUserInfoMapper;
 
     private final RedisTemplate redisTemplate;
-
 
     public SysUserService(SysUserInfoMapper sysUserInfoMapper, RedisTemplate redisTemplate) {
         this.sysUserInfoMapper = sysUserInfoMapper;
@@ -37,6 +38,7 @@ public class SysUserService {
             StpUtil.login(userInfo.get(0).getId());
             return new ResponseResult<>(ResultCode.SUCCESS, userInfo.get(0));
         }
+        this.insertUserCache();
         return new ResponseResult<>(ResultCode.LOGIN_FAIL, "登录失败: 请联系管理员");
     }
 
@@ -51,6 +53,7 @@ public class SysUserService {
         }
         StpUtil.login(userInfo.get(0).getId());
         redisTemplate.opsForSet().remove(email);
+        this.insertUserCache();
         return new ResponseResult<>(ResultCode.SUCCESS, userInfo.get(0));
     }
 
@@ -88,4 +91,8 @@ public class SysUserService {
         sysUserInfoMapper.updateById(sysUserInfoPO);
     }
 
+
+    private void insertUserCache() {
+        redisTemplate.opsForSet().add(StpUtil.getLoginId().toString(), sysUserInfoMapper.selectById(StpUtil.getLoginId().toString()));
+    }
 }

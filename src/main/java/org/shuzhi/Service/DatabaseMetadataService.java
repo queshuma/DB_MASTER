@@ -1,7 +1,5 @@
 package org.shuzhi.Service;
 
-
-import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -20,20 +18,16 @@ import org.shuzhi.PO.ProjectPO;
 import org.shuzhi.PO.ProjectVersionPO;
 import org.shuzhi.PO.TableInfoPO;
 import org.shuzhi.Config.DatabaseConfig;
-import org.shuzhi.Utils.IPageUtils;
-import org.shuzhi.Utils.PageDTO;
+import org.shuzhi.Utils.OperationUtils;
 import org.springframework.ai.tool.annotation.Tool;
-import org.springframework.context.annotation.Description;
-
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.Date;
-import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.*;
 import java.sql.Connection;
+import java.util.function.Consumer;
 
 @RequiredArgsConstructor
 @Service
@@ -46,7 +40,7 @@ public class DatabaseMetadataService {
 
     private final ProjectVersionMapper projectVersionMapper;
 
-    public List<String> getTableNames(DatabaseConfig config) throws SQLException, ClassNotFoundException {
+    public List<String> getTableNames(DatabaseConfig config) {
         List<String> tableNames = new ArrayList<>();
 
         try (Connection connection = getConnection(config)) {
@@ -93,33 +87,44 @@ public class DatabaseMetadataService {
         return tableInfos;
     }
 
-//    @Description("创建项目")
     @Tool(description = "创建项目")
+    @Transactional(rollbackFor = Exception.class)
     public ProjectPO createProject(CreateProjectDTO createProjectDTO) {
             ProjectPO projectPO = ProjectInfoMapstruct.INSTANCE.createToProjectPO(createProjectDTO);
             projectPO.setBackCount(0);
             projectInfoMapper.insert(projectPO);
-            return projectPO;
+            // 记录操作
+        OperationUtils operationUtils = OperationUtils.CREATE_PROJECT;
+        OperationInfoDTO operationInfoDTO = new OperationInfoDTO();
+        operationInfoDTO.setProjectId(projectPO.getId());
+        operationInfoDTO.setProjectName(projectPO.getProjectName());
+        operationUtils.getConsumer().accept(operationInfoDTO);
+                    return projectPO;
     }
 
-//    @Description("配置数据库")
     @Tool(description = "配置数据库")
-    public String updateProjectData(ProjectDatabaseDTO input) {
-            projectInfoMapper.updateById(ProjectInfoMapstruct.INSTANCE.updateToProjectPO(input));
-            return input.getProjectName();
+    @Transactional(rollbackFor = Exception.class)
+    public String updateProjectData(ProjectDatabaseDTO projectDatabaseDTO) {
+            projectInfoMapper.updateById(ProjectInfoMapstruct.INSTANCE.updateToProjectPO(projectDatabaseDTO));
+        // 记录操作
+        OperationUtils operationUtils = OperationUtils.UPDATE_PROJECT_DATA_CONFIG;
+        OperationInfoDTO operationInfoDTO = new OperationInfoDTO();
+        operationInfoDTO.setProjectId(projectDatabaseDTO.getId());
+        operationInfoDTO.setProjectName(projectDatabaseDTO.getProjectName());
+        operationUtils.getConsumer().accept(operationInfoDTO);
+            return projectDatabaseDTO.getProjectName();
     }
 
-//    @Description("查询项目列表")
     @Tool(description = "查询项目列表")
-    public String getProjectList(ProjectDatabaseDTO input) {
+    public List<ProjectBaseDTO> getProjectList() throws Exception {
 
             List<ProjectPO> projectPOList = projectInfoMapper.selectList(new LambdaQueryWrapper<>());
             if (projectPOList.isEmpty()) {new ArrayList<>();}
             List<ProjectBaseDTO> projectBaseDTOList = ProjectInfoMapstruct.INSTANCE.toProjectDTOList(projectPOList);
             if (projectBaseDTOList.isEmpty()) {
-                return "当前没有项目数据";
+                throw new Exception("当前没有项目数据");
             }
-            return JSONObject.toJSONString(projectBaseDTOList);
+            return projectBaseDTOList;
     }
 
     public IPage<ProjectBaseDTO> getProjectList(ProjectFilterDTO projectFilterDTO) {
@@ -131,7 +136,6 @@ public class DatabaseMetadataService {
         return projectIPage.convert(ProjectInfoMapstruct.INSTANCE::toProjectBaseDTO);
     }
 
-//    @Description("根据编号或名称查询数据库信息")
     @Tool(description = "根据编号或名称查询数据库信息")
     public ProjectBaseDTO getProjectDataBase(ProjectBaseDTO input) {
         return ProjectInfoMapstruct.INSTANCE.toProjectBaseDTO(projectInfoMapper.selectOne(new LambdaQueryWrapper<ProjectPO>()
@@ -139,7 +143,6 @@ public class DatabaseMetadataService {
                 .eq(!Objects.isNull(input.getProjectName()), ProjectPO::getProjectName, input.getProjectName())));
     }
 
-//    @Description("根据编号或名称查询备份记录")
     @Tool(description = "根据编号或名称查询备份记录")
     public List<ProjectVersionPO> getProjectHistory(ProjectBaseDTO input) {
         return ProjectInfoMapstruct.INSTANCE.toProjectVersionList(projectVersionMapper.selectList(new LambdaQueryWrapper<ProjectVersionPO>()
@@ -147,7 +150,6 @@ public class DatabaseMetadataService {
                 .eq(!Objects.isNull(input.getProjectName()), ProjectVersionPO::getProjectName, input.getProjectName())));
     }
 
-//    @Description("根据数据库查询表")
     @Tool(description = "根据数据库查询表")
     public List<TableInfo> getDataTableList(DatabaseConfig input) {
             try {
@@ -165,23 +167,21 @@ public class DatabaseMetadataService {
      * @return
      * @throws ClassNotFoundException
      */
-
-//    @Description("备份项目数据结构")
     @Tool(description = "备份项目数据结构")
     @Transactional(rollbackFor = Exception.class)
-    public List<String> backupData(DatabaseConfig input) {
+    public List<String> backupData(DatabaseConfig databaseConfig) {
             // 返回内容
             List<String> result = new ArrayList<>();
-            DatabaseConfig config = input;
+            DatabaseConfig config = databaseConfig;
             // 更新版本表
             ProjectVersionPO projectVersionPO = new ProjectVersionPO();
             projectVersionPO.setProjectName(config.getProjectName());
             projectVersionPO.setVersion(config.getVersion());
-            projectVersionPO.setSourceId(input.getId());
+            projectVersionPO.setSourceId(config.getId());
             projectVersionMapper.insert(projectVersionPO);
             // 更新项目信息表
             projectVersionPO.setVersion(config.getVersion());
-            ProjectPO projectPO = projectInfoMapper.selectById(input.getId());
+            ProjectPO projectPO = projectInfoMapper.selectById(config.getId());
             projectPO.setBackCount(projectPO.getBackCount() + 1);
             projectPO.setVersion(projectPO.getVersion());
             projectInfoMapper.updateById(projectPO);
@@ -196,7 +196,7 @@ public class DatabaseMetadataService {
                         tableInfoPO.setTableName(tables.getString("TABLE_NAME"));
                         tableInfoPO.setDescription(tables.getString("REMARKS"));
                         tableInfoPO.setCharset(tables.getString("TYPE_CAT"));
-                        tableInfoPO.setSourceId(input.getId());
+                        tableInfoPO.setSourceId(config.getId());
                         tableInfoPO.setVersion(projectVersionPO.getVersion());
                         result.add(tableInfoPO.getTableName());
                         tableInfoMapper.insert(tableInfoPO);
@@ -209,7 +209,7 @@ public class DatabaseMetadataService {
                                 column.setNullable(columnsResult.getInt("NULLABLE") == DatabaseMetaData.columnNullable);
                                 column.setRemarks(columnsResult.getString("REMARKS"));
 
-                                this.saveTableColumns(input.getId(), tableInfoPO.getId(), tableInfoPO.getTableName(), column, input.getVersion());
+                                this.saveTableColumns(config.getId(), tableInfoPO.getId(), tableInfoPO.getTableName(), column, config.getVersion());
                             }
                         } catch (SQLException e) {
                             throw new RuntimeException(e);
@@ -221,21 +221,25 @@ public class DatabaseMetadataService {
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException(e);
             }
+        // 记录操作
+        OperationUtils operationUtils = OperationUtils.UPDATE_PROJECT_DATA_CONFIG;
+        OperationInfoDTO operationInfoDTO = new OperationInfoDTO();
+        operationInfoDTO.setProjectId(config.getId());
+        operationInfoDTO.setProjectName(config.getProjectName());
+        operationUtils.getConsumer().accept(operationInfoDTO);
             return result;
     }
-
-//    @Description("比较两个版本的数据表的差异")
-    @Tool(description = "比较两个版本的字段的差异")
-    public List<String> compareTable(VersionCompareDTO input) {
-            List<String> versionList = Arrays.asList(input.getOldVersion(), input.getNewVersion());
-            boolean exists = projectVersionMapper.exists(new LambdaQueryWrapper<ProjectVersionPO>().eq(ProjectVersionPO::getProjectName, input.getProjectName()).in(ProjectVersionPO::getVersion, versionList));
+    @Tool(description = "比较两个版本的数据表的差异")
+    public List<String> compareTable(VersionCompareDTO versionCompareDTO) {
+            List<String> versionList = Arrays.asList(versionCompareDTO.getOldVersion(), versionCompareDTO.getNewVersion());
+            boolean exists = projectVersionMapper.exists(new LambdaQueryWrapper<ProjectVersionPO>().eq(ProjectVersionPO::getProjectName, versionCompareDTO.getProjectName()).in(ProjectVersionPO::getVersion, versionList));
             if (versionList.size() != 2) {
                 throw new RuntimeException("请检查版本数量是否正确");
             }
             if (!exists) {
                 throw new RuntimeException("请检查版本号是否正确");
             }
-            List<TableInfoPO> tableInfoPOList = tableInfoMapper.selectList(new LambdaQueryWrapper<TableInfoPO>().eq(TableInfoPO::getSourceId, input.getProjectId()).in(TableInfoPO::getVersion, versionList));
+            List<TableInfoPO> tableInfoPOList = tableInfoMapper.selectList(new LambdaQueryWrapper<TableInfoPO>().eq(TableInfoPO::getSourceId, versionCompareDTO.getProjectId()).in(TableInfoPO::getVersion, versionList));
             Map<String, List<TableInfoPO>> versionMap = new HashMap<>();
             for (String version : versionList) {
                 versionMap.put(version, new ArrayList<>());
@@ -245,8 +249,8 @@ public class DatabaseMetadataService {
             }
 
             List<String> differences = new ArrayList<>();
-            List<TableInfoPO> oldVersionTables = versionMap.get(input.getOldVersion());
-            List<TableInfoPO> newVersionTables = versionMap.get(input.getNewVersion());
+            List<TableInfoPO> oldVersionTables = versionMap.get(versionCompareDTO.getOldVersion());
+            List<TableInfoPO> newVersionTables = versionMap.get(versionCompareDTO.getNewVersion());
 
             Set<String> oldTableNames = new HashSet<>();
             Set<String> newTableNames = new HashSet<>();
@@ -272,24 +276,27 @@ public class DatabaseMetadataService {
                     differences.add("删除表: " + tableName);
                 }
             }
-
+        // 记录操作
+        OperationUtils operationUtils = OperationUtils.COMPARE_VERSION_TABLE_DIFF;
+        OperationInfoDTO operationInfoDTO = new OperationInfoDTO();
+        operationInfoDTO.setProjectId(versionCompareDTO.getProjectId());
+        operationInfoDTO.setProjectName(versionCompareDTO.getProjectName());
+        operationUtils.getConsumer().accept(operationInfoDTO);
             return differences;
 
     };
 
-//    @Description("比较两个版本的字段的差异")
     @Tool(description = "比较两个版本的字段的差异")
-    public Function<VersionCompareDTO, List<String>> compareColumn() {
-        return input -> {
-            List<String> versionList = Arrays.asList(input.getOldVersion(), input.getNewVersion());
-            boolean exists = projectVersionMapper.exists(new LambdaQueryWrapper<ProjectVersionPO>().eq(ProjectVersionPO::getProjectName, input.getProjectName()).in(ProjectVersionPO::getVersion, versionList));
+    public List<String> compareColumn(VersionCompareDTO versionCompareDTO) {
+            List<String> versionList = Arrays.asList(versionCompareDTO.getOldVersion(), versionCompareDTO.getNewVersion());
+            boolean exists = projectVersionMapper.exists(new LambdaQueryWrapper<ProjectVersionPO>().eq(ProjectVersionPO::getProjectName, versionCompareDTO.getProjectName()).in(ProjectVersionPO::getVersion, versionList));
             if (versionList.size() != 2) {
                 throw new RuntimeException("请检查版本数量是否正确");
             }
             if (!exists) {
                 throw new RuntimeException("请检查版本号是否正确");
             }
-            List<ColumnInfoPO> columnInfoPOList = columnInfoMapper.selectList(new LambdaQueryWrapper<ColumnInfoPO>().eq(ColumnInfoPO::getSourceId, input.getProjectId()).in(ColumnInfoPO::getVersion, versionList));
+            List<ColumnInfoPO> columnInfoPOList = columnInfoMapper.selectList(new LambdaQueryWrapper<ColumnInfoPO>().eq(ColumnInfoPO::getSourceId, versionCompareDTO.getProjectId()).in(ColumnInfoPO::getVersion, versionList));
             Map<String, Map<String, List<ColumnInfoPO>>> versionMap = new HashMap<>();
             for (String version : versionList) {
                 versionMap.put(version, new HashMap<>());
@@ -304,8 +311,8 @@ public class DatabaseMetadataService {
             }
 
             List<String> differences = new ArrayList<>();
-            Map<String, List<ColumnInfoPO>> oldVersionTables = versionMap.get(input.getOldVersion());
-            Map<String, List<ColumnInfoPO>> newVersionTables = versionMap.get(input.getOldVersion());
+            Map<String, List<ColumnInfoPO>> oldVersionTables = versionMap.get(versionCompareDTO.getOldVersion());
+            Map<String, List<ColumnInfoPO>> newVersionTables = versionMap.get(versionCompareDTO.getOldVersion());
 
 
             List<String> oldTableList = oldVersionTables.keySet().stream().toList();
@@ -366,9 +373,13 @@ public class DatabaseMetadataService {
                     differences.add("新增表: " + newTableName);
                 }
             }
-
+        // 记录操作
+        OperationUtils operationUtils = OperationUtils.COMPARE_VERSION_TABLE_DIFF;
+        OperationInfoDTO operationInfoDTO = new OperationInfoDTO();
+        operationInfoDTO.setProjectId(versionCompareDTO.getProjectId());
+        operationInfoDTO.setProjectName(versionCompareDTO.getProjectName());
+        operationUtils.getConsumer().accept(operationInfoDTO);
             return differences;
-        };
     }
 
     /**

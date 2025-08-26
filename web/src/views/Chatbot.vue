@@ -86,11 +86,33 @@ const sendMessage = async () => {
       throw new Error(`请求失败: ${response.status} ${response.statusText}`);
     }
 
-    // 流式处理响应
+    // 流式处理响应 - 打字机效果实现
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     const botMessage = messages.value.find(m => m.id === botMsgId);
     let complete = false;
+    let pendingText = '';  // 待处理的文本
+    let isTyping = false;  // 是否正在打字中
+    const TYPE_SPEED = 20;  // 打字速度(ms/字符)
+
+    // 打字机函数 - 逐字显示文本
+    const typeWriter = () => {
+      if (pendingText.length === 0) {
+        isTyping = false;
+        return;
+      }
+
+      isTyping = true;
+      const char = pendingText.charAt(0);
+      pendingText = pendingText.substring(1);
+
+      botMessage.content += char;
+      scrollToBottom();
+
+      // 调整不同字符的打字速度，提升真实感
+      const delay = char === '\n' || char === '。' || char === '！' || char === '？' ? TYPE_SPEED * 3 : TYPE_SPEED;
+      setTimeout(typeWriter, delay);
+    };
 
     while (!complete && !abortController.signal.aborted) {
       const { done, value } = await reader.read();
@@ -114,10 +136,37 @@ const sendMessage = async () => {
         }
 
         if (messageContent) {
-          botMessage.content += messageContent;
-          scrollToBottom();
+          // 添加到待处理文本
+          pendingText += messageContent;
+          // 如果当前没有在打字，则开始打字
+          if (!isTyping) {
+            typeWriter();
+          }
         }
       }
+    }
+
+    // 确保所有待处理文本都被显示
+    const ensureAllTextDisplayed = () => {
+      if (pendingText.length > 0) {
+        botMessage.content += pendingText;
+        pendingText = '';
+        scrollToBottom();
+      }
+    };
+
+    // 确保所有文本都已显示后再标记为完成
+    if (pendingText.length > 0) {
+      await new Promise(resolve => {
+        const checkPending = () => {
+          if (pendingText.length === 0) {
+            resolve();
+          } else {
+            setTimeout(checkPending, 100);
+          }
+        };
+        checkPending();
+      });
     }
 
     if (botMessage) {
