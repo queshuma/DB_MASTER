@@ -30,14 +30,4 @@ public class RedisConfig {
         template.afterPropertiesSet();
         return template;
     }
-
-
-//    @Bean
-//    public RedisVectorStore vectorStore(RedisConnectionFactory redisConnectionFactory, EmbeddingModel embeddingModel) {
-//        return RedisVectorStore.builder(redisConnectionFactory, embeddingModel)
-//                .initializeSchema(true) // 根据您的配置
-//                .indexName("custom-index") // 根据您的配置
-//                .prefix("custom-prefix") // 根据您的配置
-//                .build();
-//    }
 }

@@ -1,6 +1,7 @@
 package org.shuzhi.Config;
 
 import cn.dev33.satoken.context.SaHolder;
+import cn.dev33.satoken.context.SaTokenContext;
 import cn.dev33.satoken.filter.SaServletFilter;
 import cn.dev33.satoken.fun.strategy.SaCorsHandleFunction;
 import cn.dev33.satoken.interceptor.SaInterceptor;
@@ -8,6 +9,7 @@ import cn.dev33.satoken.router.SaHttpMethod;
 import cn.dev33.satoken.router.SaRouter;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.util.SaResult;
+import jakarta.annotation.PostConstruct;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

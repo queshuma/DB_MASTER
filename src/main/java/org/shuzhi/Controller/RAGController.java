@@ -1,5 +1,8 @@
 package org.shuzhi.Controller;
 
+import cn.dev33.satoken.stp.StpUtil;
+import org.shuzhi.Config.ReactiveContext;
+import org.shuzhi.Config.UserContext;
 import org.shuzhi.Service.DatabaseMetadataService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
@@ -7,16 +10,20 @@ import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvi
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.util.context.Context;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/database")
@@ -40,47 +47,69 @@ public class RAGController {
             "                当询问到一些数据库相关的技术、知识的时候，你会主动的去查询知识库中的内容，如果是询问与知识库无关的内容，请礼貌友好的回绝";
 
 
-
     private ChatClient chatClient;
 
     private VectorStore vectorStore;
 
+    @Autowired
     private DatabaseMetadataService databaseMetadataService;
 
-    List <Document> documents = List.of(
+    List<Document> documents = List.of(
             new Document("MySQL：全球最流行的开源关系型数据库，以易用性、社区活跃和广泛的互联网应用生态著称。\n" +
                     "\n" +
                     "GBase：源自中国、主打国产化和分析型场景的数据库系列，更强调在特定领域（如数据分析、政府、金融关键业务）的高性能、高安全和高可靠性。", Map.of("数据库区别", "mysql和gbase")));
 
 
-
-    public RAGController(ChatClient.Builder client, ChatMemory chatMemory, VectorStore vectorStore, DatabaseMetadataService databaseMetadataService) {
+    public RAGController(ChatClient.Builder client, ChatMemory chatMemory, VectorStore vectorStore) {
         this.vectorStore = vectorStore;
-        this.databaseMetadataService = databaseMetadataService;
         this.chatClient = client.defaultSystem(DEFAULT_PROMPT)
                 .defaultAdvisors(
                         MessageChatMemoryAdvisor.builder(chatMemory).build()
-//                        new LoggingAdvisor()
                 )
-//                .defaultTools(DatabaseMetadataService.class)
                 .build();
         vectorStore.add(documents);
     }
 
     @GetMapping(value = "/ai/generateStreamAsString", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> generateStreamAsString(@RequestParam(value = "message", defaultValue = "") String message) {
-        Flux<String> content =  this.chatClient.prompt()
-                .user(message)
-                .system(promptSystemSpec -> {
-                    promptSystemSpec.param("current_date", LocalDate.now());
-                })
-                .tools(databaseMetadataService)
-                .advisors(
-                        new QuestionAnswerAdvisor(vectorStore)
-                )
-                .stream()
-                .content();
-        return content.concatWith(Flux.just("[complete]"));
-    }
+        // 获取当前登录用户ID并设置到ReactiveContext中
+        // 这一步设置会被后续的ToolContextAspect检测到并保留
+        String currentUserId = StpUtil.getLoginIdAsString();
+        ReactiveContext.setUserId(currentUserId);
 
+        return chatClient.prompt()
+                .user(message)
+                // 注入系统参数
+                .system(spec -> spec.param("current_date", LocalDate.now()))
+                // 注册所有 Tool 服务（自动识别 @Tool 方法）
+                .tools(databaseMetadataService)
+                // 添加问答适配器
+                .advisors(new QuestionAnswerAdvisor(vectorStore))
+                // 构建响应流
+                .stream()
+                .chatResponse()
+                // 注入 Reactor 上下文（可选）
+                .contextWrite(ctx -> ctx.put("userId", currentUserId))
+                // 确保异步线程中上下文仍有效
+                .flatMap(resp ->
+                        Mono.deferContextual(ctx -> {
+                            String id = ctx.getOrEmpty("userId")
+                                    .map(Object::toString)
+                                    .orElse("anonymous");
+                            ReactiveContext.setUserId(id);
+                            return Mono.just(resp);
+                        })
+                )
+                // 最终追加结束标识
+                .map(response -> {
+                    // 可选：将用户信息注入到响应中
+                    return Optional.ofNullable(response.getResult().getOutput().getText()).orElse("") ;
+                })
+                // 添加结束标识
+                .concatWith(Flux.just("[complete]"))
+                // 异常处理（可选）
+                .onErrorResume(e -> Flux.just("[error: " + e.getMessage() + "]"));
+                // 确保上下文清理（可选）
+//                .doOnTerminate(ReactiveContext::clear);
+    }
 }

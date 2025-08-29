@@ -12,12 +12,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * @date: 2021/12/27 10:01
  * @Hidden用于swagger查询数据异常处理
  */
-@Hidden
-@RestControllerAdvice
+//@Hidden
+//@RestControllerAdvice
 public class GlobalExceptionHandler {
-    @ExceptionHandler(Exception.class)
-    public SaResult handlerException(Exception e) {
-        e.printStackTrace();
-        return SaResult.error(e.getMessage());
-    }
+//    @ExceptionHandler(Exception.class)
+//    public SaResult handlerException(Exception e) {
+//        e.printStackTrace();
+//        return SaResult.error(e.getMessage());
+//    }
 }

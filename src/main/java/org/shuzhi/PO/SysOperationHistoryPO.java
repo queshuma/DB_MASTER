@@ -1,7 +1,11 @@
 package org.shuzhi.PO;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
+import java.util.Date;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -50,5 +54,6 @@ public class SysOperationHistoryPO implements Serializable {
     /**
      * 创建时间
      */
-    private String createDate;
+    @TableField(fill = FieldFill.INSERT)
+    private Date createDate;
 }

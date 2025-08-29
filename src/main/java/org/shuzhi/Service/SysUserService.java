@@ -1,6 +1,7 @@
 package org.shuzhi.Service;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.shuzhi.Common.ResponseResult;
 import org.shuzhi.Common.ResultCode;
@@ -36,9 +37,9 @@ public class SysUserService {
         }
         if (userInfo.size() == 1) {
             StpUtil.login(userInfo.get(0).getId());
+            this.insertUserCache();
             return new ResponseResult<>(ResultCode.SUCCESS, userInfo.get(0));
         }
-        this.insertUserCache();
         return new ResponseResult<>(ResultCode.LOGIN_FAIL, "登录失败: 请联系管理员");
     }
 
@@ -93,6 +94,6 @@ public class SysUserService {
 
 
     private void insertUserCache() {
-        redisTemplate.opsForSet().add(StpUtil.getLoginId().toString(), sysUserInfoMapper.selectById(StpUtil.getLoginId().toString()));
+        redisTemplate.opsForSet().add(StpUtil.getLoginId().toString(), JSONObject.toJSONString(sysUserInfoMapper.selectById(StpUtil.getLoginId().toString())));
     }
 }
