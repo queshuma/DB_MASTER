@@ -88,7 +88,6 @@ public class DatabaseMetadataService {
     @Tool(description = "创建项目")
     @Transactional(rollbackFor = Exception.class)
     public ProjectPO createProject(CreateProjectDTO createProjectDTO) {
-        System.out.println("调用" +  Thread.currentThread().getId());
         ProjectPO projectPO = ProjectInfoMapstruct.INSTANCE.createToProjectPO(createProjectDTO);
         projectPO.setBackCount(0);
         projectInfoMapper.insert(projectPO);
@@ -107,7 +106,7 @@ public class DatabaseMetadataService {
         projectInfoMapper.updateById(ProjectInfoMapstruct.INSTANCE.updateToProjectPO(projectDatabaseDTO));
         // 记录操作
         OperationInfoDTO operationInfoDTO = new OperationInfoDTO();
-        operationInfoDTO.setUserId(StpUtil.getLoginIdAsString());
+        operationInfoDTO.setUserId(UserContext.getUserId());
         operationInfoDTO.setProjectId(projectDatabaseDTO.getId());
         operationInfoDTO.setProjectName(projectDatabaseDTO.getProjectName());
         operationService.insertUpdateProjectData(operationInfoDTO);
@@ -225,7 +224,7 @@ public class DatabaseMetadataService {
         }
         // 记录操作
         OperationInfoDTO operationInfoDTO = new OperationInfoDTO();
-        operationInfoDTO.setUserId(StpUtil.getLoginIdAsString());
+        operationInfoDTO.setUserId(UserContext.getUserId());
         operationInfoDTO.setProjectId(config.getId());
         operationInfoDTO.setProjectName(config.getProjectName());
         operationService.insertBackupProject(operationInfoDTO);
@@ -281,7 +280,7 @@ public class DatabaseMetadataService {
         }
         // 记录操作
         OperationInfoDTO operationInfoDTO = new OperationInfoDTO();
-        operationInfoDTO.setUserId(StpUtil.getLoginIdAsString());
+        operationInfoDTO.setUserId(UserContext.getUserId());
         operationInfoDTO.setProjectId(versionCompareDTO.getProjectId());
         operationInfoDTO.setProjectName(versionCompareDTO.getProjectName());
         operationService.insertCompareVersionTableDiff(operationInfoDTO);
@@ -380,7 +379,7 @@ public class DatabaseMetadataService {
         }
         // 记录操作
         OperationInfoDTO operationInfoDTO = new OperationInfoDTO();
-        operationInfoDTO.setUserId(StpUtil.getLoginIdAsString());
+        operationInfoDTO.setUserId(UserContext.getUserId());
         operationInfoDTO.setProjectId(versionCompareDTO.getProjectId());
         operationInfoDTO.setProjectName(versionCompareDTO.getProjectName());
         operationService.insertCompareVersionFieldDiff(operationInfoDTO);
