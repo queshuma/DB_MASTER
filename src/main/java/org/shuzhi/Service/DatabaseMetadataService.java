@@ -102,7 +102,7 @@ public class DatabaseMetadataService {
 
     @Tool(description = "配置数据库")
     @Transactional(rollbackFor = Exception.class)
-    public String updateProjectData(ProjectDatabaseDTO projectDatabaseDTO) {
+    public Mono<String> updateProjectData(ProjectDatabaseDTO projectDatabaseDTO) {
         projectInfoMapper.updateById(ProjectInfoMapstruct.INSTANCE.updateToProjectPO(projectDatabaseDTO));
         // 记录操作
         OperationInfoDTO operationInfoDTO = new OperationInfoDTO();
@@ -110,11 +110,11 @@ public class DatabaseMetadataService {
         operationInfoDTO.setProjectId(projectDatabaseDTO.getId());
         operationInfoDTO.setProjectName(projectDatabaseDTO.getProjectName());
         operationService.insertUpdateProjectData(operationInfoDTO);
-        return projectDatabaseDTO.getProjectName();
+        return Mono.just(projectDatabaseDTO.getProjectName());
     }
 
     @Tool(description = "查询项目列表")
-    public List<ProjectBaseDTO> getProjectList() throws Exception {
+    public Mono<List<ProjectBaseDTO>> getProjectList() throws Exception {
 
         List<ProjectPO> projectPOList = projectInfoMapper.selectList(new LambdaQueryWrapper<>());
         if (projectPOList.isEmpty()) {
@@ -124,7 +124,7 @@ public class DatabaseMetadataService {
         if (projectBaseDTOList.isEmpty()) {
             throw new Exception("当前没有项目数据");
         }
-        return projectBaseDTOList;
+        return Mono.just(projectBaseDTOList);
     }
 
     public IPage<ProjectBaseDTO> getProjectList(ProjectFilterDTO projectFilterDTO) {
@@ -144,16 +144,16 @@ public class DatabaseMetadataService {
     }
 
     @Tool(description = "根据编号或名称查询备份记录")
-    public List<ProjectVersionPO> getProjectHistory(ProjectBaseDTO input) {
-        return ProjectInfoMapstruct.INSTANCE.toProjectVersionList(projectVersionMapper.selectList(new LambdaQueryWrapper<ProjectVersionPO>()
+    public Mono<List<ProjectVersionPO>> getProjectHistory(ProjectBaseDTO input) {
+        return Mono.just(ProjectInfoMapstruct.INSTANCE.toProjectVersionList(projectVersionMapper.selectList(new LambdaQueryWrapper<ProjectVersionPO>()
                 .eq(!Objects.isNull(input.getId()), ProjectVersionPO::getSourceId, input.getId())
-                .eq(!Objects.isNull(input.getProjectName()), ProjectVersionPO::getProjectName, input.getProjectName())));
+                .eq(!Objects.isNull(input.getProjectName()), ProjectVersionPO::getProjectName, input.getProjectName()))));
     }
 
     @Tool(description = "根据数据库查询表")
-    public List<TableInfo> getDataTableList(DatabaseConfig input) {
+    public Mono<List<TableInfo>> getDataTableList(DatabaseConfig input) {
         try {
-            return this.getTableInfo(input);
+            return Mono.just(this.getTableInfo(input));
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } catch (ClassNotFoundException e) {
@@ -170,7 +170,7 @@ public class DatabaseMetadataService {
      */
     @Tool(description = "备份项目数据结构")
     @Transactional(rollbackFor = Exception.class)
-    public List<String> backupData(DatabaseConfig databaseConfig) {
+    public Mono<List<String>> backupData(DatabaseConfig databaseConfig) {
         // 返回内容
         List<String> result = new ArrayList<>();
         DatabaseConfig config = databaseConfig;
@@ -228,11 +228,11 @@ public class DatabaseMetadataService {
         operationInfoDTO.setProjectId(config.getId());
         operationInfoDTO.setProjectName(config.getProjectName());
         operationService.insertBackupProject(operationInfoDTO);
-        return result;
+        return Mono.just(result);
     }
 
     @Tool(description = "比较两个版本的数据表的差异")
-    public List<String> compareTable(VersionCompareDTO versionCompareDTO) {
+    public Mono<List<String>> compareTable(VersionCompareDTO versionCompareDTO) {
         List<String> versionList = Arrays.asList(versionCompareDTO.getOldVersion(), versionCompareDTO.getNewVersion());
         boolean exists = projectVersionMapper.exists(new LambdaQueryWrapper<ProjectVersionPO>().eq(ProjectVersionPO::getProjectName, versionCompareDTO.getProjectName()).in(ProjectVersionPO::getVersion, versionList));
         if (versionList.size() != 2) {
@@ -284,14 +284,14 @@ public class DatabaseMetadataService {
         operationInfoDTO.setProjectId(versionCompareDTO.getProjectId());
         operationInfoDTO.setProjectName(versionCompareDTO.getProjectName());
         operationService.insertCompareVersionTableDiff(operationInfoDTO);
-        return differences;
+        return Mono.just(differences);
 
     }
 
     ;
 
     @Tool(description = "比较两个版本的字段的差异")
-    public List<String> compareColumn(VersionCompareDTO versionCompareDTO) {
+    public Mono<List<String>> compareColumn(VersionCompareDTO versionCompareDTO) {
         List<String> versionList = Arrays.asList(versionCompareDTO.getOldVersion(), versionCompareDTO.getNewVersion());
         boolean exists = projectVersionMapper.exists(new LambdaQueryWrapper<ProjectVersionPO>().eq(ProjectVersionPO::getProjectName, versionCompareDTO.getProjectName()).in(ProjectVersionPO::getVersion, versionList));
         if (versionList.size() != 2) {
@@ -383,7 +383,7 @@ public class DatabaseMetadataService {
         operationInfoDTO.setProjectId(versionCompareDTO.getProjectId());
         operationInfoDTO.setProjectName(versionCompareDTO.getProjectName());
         operationService.insertCompareVersionFieldDiff(operationInfoDTO);
-        return differences;
+        return Mono.just(differences);
     }
 
     /**
