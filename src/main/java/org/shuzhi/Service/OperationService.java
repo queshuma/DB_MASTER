@@ -34,11 +34,11 @@ public class OperationService {
     }
 
     public void insertCreateProject(OperationInfoDTO operationInfoDTO) {
-        insertOperationHistory(String.format("创建项目 %s", operationInfoDTO), operationInfoDTO);
+        insertOperationHistory(String.format("创建项目 %s", operationInfoDTO.getProjectName()), operationInfoDTO);
     }
 
     public void insertUpdateProject(OperationInfoDTO operationInfoDTO) {
-        insertOperationHistory(String.format("更新项目信息 %s", operationInfoDTO), operationInfoDTO);
+        insertOperationHistory(String.format("更新项目信息 %s", operationInfoDTO.getProjectName()), operationInfoDTO);
     }
 
 

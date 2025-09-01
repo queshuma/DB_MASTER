@@ -2,16 +2,6 @@
   <div class="operation-records-container">
     <h2>操作记录</h2>
     
-    <!-- 模拟数据提示 -->
-    <a-alert
-      v-if="showMockDataAlert"
-      message="当前显示的是模拟数据"
-      description="实际环境中会从服务器获取真实的操作记录"
-      type="info"
-      showIcon
-      style="margin-bottom: 16px;"
-    />
-    
     <!-- 操作记录表格 -->
     <div class="records-content">
       <a-table
@@ -22,7 +12,6 @@
         :pagination="paginationConfig"
         @change="handleTableChange"
       >
-        <!-- 如有需要可以在这里添加自定义列渲染 -->
       </a-table>
     </div>
   </div>
@@ -34,12 +23,7 @@ import { link } from '../link/Link';
 
 // 表格列配置
 const columns = [
-  {
-    title: 'ID',
-    dataIndex: 'id',
-    key: 'id',
-    width: 100,
-  },
+  {    title: 'ID',    dataIndex: 'id',    key: 'id',    width: 200,  },
   {
     title: '操作记录',
     dataIndex: 'operation',
@@ -70,47 +54,6 @@ const columns = [
 const operationRecords = ref([]);
 // 加载状态
 const loading = ref(false);
-// 是否显示模拟数据提示
-const showMockDataAlert = ref(false);
-
-// 模拟数据，用于接口未就绪时的展示
-const mockData = [
-  {
-    id: '1',
-    operation: '创建新项目 "客户管理系统"',
-    userName: '张三',
-    projectName: '客户管理系统',
-    createDate: '2023-10-15 10:23:45'
-  },
-  {
-    id: '2',
-    operation: '更新数据库配置信息',
-    userName: '李四',
-    projectName: '数据分析平台',
-    createDate: '2023-10-15 09:12:30'
-  },
-  {
-    id: '3',
-    operation: '执行数据导入任务',
-    userName: '王五',
-    projectName: '客户管理系统',
-    createDate: '2023-10-14 16:45:22'
-  },
-  {
-    id: '4',
-    operation: '删除过期日志记录',
-    userName: '赵六',
-    projectName: '日志管理系统',
-    createDate: '2023-10-14 14:05:18'
-  },
-  {
-    id: '5',
-    operation: '修改用户权限设置',
-    userName: '张三',
-    projectName: '客户管理系统',
-    createDate: '2023-10-13 11:30:40'
-  }
-];
 
 // 分页配置
 const paginationConfig = reactive({
@@ -133,35 +76,46 @@ const getOperationRecords = async () => {
       '/api/operation/getList', // 不需要完整URL，Link.js中已配置baseURL
       'POST',
       {
-        pageNum: paginationConfig.current,
-        pageSize: paginationConfig.pageSize,
+        page: paginationConfig.current,
+        size: paginationConfig.pageSize,
         // 可以根据需要添加查询条件
       },
       {}, // params参数为空
       {'Content-Type': 'application/json'}
     );
 
-    // 处理返回数据，根据Link.js的响应拦截器，返回的直接是response.data
-    if (response && response.list !== undefined) {
-      operationRecords.value = response.list || [];
-      paginationConfig.total = response.total || 0;
-    } else {
+    // 处理返回数据，根据接口实际返回格式
+    if (response) {
+      // 优先使用records字段获取数据列表
+      if (response.records && Array.isArray(response.records)) {
+        operationRecords.value = response.records || [];
+        // 如果total为0但records有数据，使用records的长度作为total
+        paginationConfig.total = response.total > 0 ? response.total : response.records.length;
+      } 
+      // 兼容旧格式，保持向后兼容
+      else if (response.list && Array.isArray(response.list)) {
+        operationRecords.value = response.list || [];
+        paginationConfig.total = response.total || 0;
+      }
       // 处理返回格式可能不一致的情况
-      operationRecords.value = Array.isArray(response) ? response : [];
-      paginationConfig.total = operationRecords.value.length;
+      else if (Array.isArray(response)) {
+        operationRecords.value = response;
+        paginationConfig.total = response.length;
+      }
+      // 默认情况
+      else {
+        operationRecords.value = [];
+        paginationConfig.total = 0;
+      }
+    } else {
+      operationRecords.value = [];
+      paginationConfig.total = 0;
     }
   } catch (error) {
     console.error('获取操作记录失败:', error);
-    // 在接口未就绪时使用模拟数据
-    console.log('使用模拟数据展示操作记录');
-    // 模拟分页逻辑
-    const start = (paginationConfig.current - 1) * paginationConfig.pageSize;
-    const end = start + paginationConfig.pageSize;
-    operationRecords.value = mockData.slice(start, end);
-    paginationConfig.total = mockData.length;
-    
-    // 显示模拟数据提示
-    showMockDataAlert.value = true;
+    // 接口调用失败时清空数据
+    operationRecords.value = [];
+    paginationConfig.total = 0;
   } finally {
     loading.value = false;
   }

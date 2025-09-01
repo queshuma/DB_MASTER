@@ -88,28 +88,22 @@ public class RAGController {
                 // 构建响应流
                 .stream()
                 .chatResponse()
-                // 注入 Reactor 上下文（可选）
-                .contextWrite(ctx -> ctx.put("userId", currentUserId))
-                // 确保异步线程中上下文仍有效
-                .flatMap(resp ->
-                        Mono.deferContextual(ctx -> {
-                            String id = ctx.getOrEmpty("userId")
-                                    .map(Object::toString)
-                                    .orElse("anonymous");
-                            ReactiveContext.setUserId(id);
-                            return Mono.just(resp);
-                        })
-                )
+                // 在每个响应中确保上下文正确设置
+                .flatMap(resp -> {
+                    // 每次处理响应时都重新设置用户上下文
+                    ReactiveContext.setUserId(currentUserId);
+                    return Mono.just(resp);
+                })
                 // 最终追加结束标识
                 .map(response -> {
                     // 可选：将用户信息注入到响应中
                     return Optional.ofNullable(response.getResult().getOutput().getText()).orElse("") ;
                 })
                 // 添加结束标识
-                .concatWith(Flux.just("[complete]"))
+                .concatWith(Flux.just("[complete]"));
                 // 异常处理（可选）
-                .onErrorResume(e -> Flux.just("[error: " + e.getMessage() + "]"));
-                // 确保上下文清理（可选）
-//                .doOnTerminate(ReactiveContext::clear);
+//                .onErrorResume(e -> Flux.just("[error: " + e.getMessage() + "]"))
+                // 确保上下文清理
+//                .doFinally(signalType -> UserContext.cleanup());
     }
 }

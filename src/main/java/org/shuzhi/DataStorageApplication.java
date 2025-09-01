@@ -1,6 +1,7 @@
 package org.shuzhi;
 
 import cn.dev33.satoken.SaManager;
+import com.alibaba.ttl.threadpool.TtlExecutors;
 import org.mybatis.spring.annotation.MapperScan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,10 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import redis.clients.jedis.JedisPooled;
 
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+
 @SpringBootApplication
 @MapperScan("org.shuzhi.Mapper")
 @CrossOrigin
@@ -37,6 +42,13 @@ public class DataStorageApplication {
 
         SpringApplication.run(DataStorageApplication.class, args);
         System.out.println("启动成功，Sa-Token 配置如下：" + SaManager.getConfig());
+    }
+
+    @Bean("taskExecutor")
+    public Executor taskExecutor() {
+        ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+        // 使用TTL包装线程池
+        return TtlExecutors.getTtlExecutorService(threadPoolExecutor);
     }
 
     @Bean
@@ -57,9 +69,4 @@ public class DataStorageApplication {
                 .build();
     }
 
-//    @Bean
-//    public EmbeddingModel embeddingModel() {
-//        ZhiPuAiApi zhiPuAiApi = new ZhiPuAiApi("e6c75ac4eeda47a1a426501e371bbda3.u5Xnrt5MGhKDAxgt");
-//        return new ZhiPuAiEmbeddingModel(zhiPuAiApi); // 🔑 智谱 API Key
-//    }
 }
