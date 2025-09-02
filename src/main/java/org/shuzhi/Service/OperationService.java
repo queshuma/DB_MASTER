@@ -12,12 +12,17 @@ import org.shuzhi.Mapper.SysOperationHistoryMapper;
 import org.shuzhi.Mapstruct.SysOperationMapstruct;
 import org.shuzhi.PO.SysOperationHistoryPO;
 import org.shuzhi.PO.SysUserInfoPO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
 public class OperationService {
+
+    private static final Logger logger = LoggerFactory.getLogger(OperationService.class);
+
     @Autowired
     private SysOperationHistoryMapper sysOperationHistoryMapper;
 
@@ -64,7 +69,13 @@ public class OperationService {
 
 
     private void insertOperationHistory(String operation, OperationInfoDTO operationInfoDTO) {
-        SysUserInfoPO sysUserInfoPO = JSONObject.parseObject(redisTemplate.opsForSet().pop(operationInfoDTO.getUserId()).toString(), SysUserInfoPO.class);
+        SysUserInfoPO sysUserInfoPO;
+        try {
+            sysUserInfoPO = JSONObject.parseObject(redisTemplate.opsForSet().pop(operationInfoDTO.getUserId()).toString(), SysUserInfoPO.class);
+        } catch (Exception e) {
+            logger.error("Redis获取用户信息失败{}", operationInfoDTO.getUserId());
+            throw e;
+        }
         SysOperationHistoryPO sysOperationHistoryPO = new SysOperationHistoryPO();
         sysOperationHistoryPO.setOperation(operation);
         sysOperationHistoryPO.setUserId(operationInfoDTO.getUserId());

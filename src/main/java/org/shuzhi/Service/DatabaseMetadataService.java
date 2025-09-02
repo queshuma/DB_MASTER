@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.shuzhi.Config.ReactiveContext;
 import org.shuzhi.Config.UserContext;
 import org.shuzhi.Dto.TableInfo;
 import org.shuzhi.Dto.*;
@@ -13,6 +14,7 @@ import org.shuzhi.Mapstruct.ColumnInfoMapstruct;
 import org.shuzhi.Mapstruct.ProjectInfoMapstruct;
 import org.shuzhi.PO.*;
 import org.shuzhi.Config.DatabaseConfig;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 
 import java.util.*;
@@ -87,7 +89,8 @@ public class DatabaseMetadataService {
 
     @Tool(description = "创建项目")
     @Transactional(rollbackFor = Exception.class)
-    public ProjectPO createProject(CreateProjectDTO createProjectDTO) {
+    public ProjectPO createProject(CreateProjectDTO createProjectDTO, ToolContext toolContext) {
+        ReactiveContext.setUserId((String) toolContext.getContext().get("userId"));
         ProjectPO projectPO = ProjectInfoMapstruct.INSTANCE.createToProjectPO(createProjectDTO);
         projectPO.setBackCount(0);
         projectInfoMapper.insert(projectPO);
@@ -102,7 +105,8 @@ public class DatabaseMetadataService {
 
     @Tool(description = "配置数据库")
     @Transactional(rollbackFor = Exception.class)
-    public Mono<String> updateProjectData(ProjectDatabaseDTO projectDatabaseDTO) {
+    public Mono<String> updateProjectData(ProjectDatabaseDTO projectDatabaseDTO, ToolContext toolContext) {
+        ReactiveContext.setUserId((String) toolContext.getContext().get("userId"));
         projectInfoMapper.updateById(ProjectInfoMapstruct.INSTANCE.updateToProjectPO(projectDatabaseDTO));
         // 记录操作
         OperationInfoDTO operationInfoDTO = new OperationInfoDTO();
@@ -114,7 +118,7 @@ public class DatabaseMetadataService {
     }
 
     @Tool(description = "查询项目列表")
-    public Mono<List<ProjectBaseDTO>> getProjectList() throws Exception {
+    public List<ProjectBaseDTO> getProjectList() throws Exception {
 
         List<ProjectPO> projectPOList = projectInfoMapper.selectList(new LambdaQueryWrapper<>());
         if (projectPOList.isEmpty()) {
@@ -124,7 +128,7 @@ public class DatabaseMetadataService {
         if (projectBaseDTOList.isEmpty()) {
             throw new Exception("当前没有项目数据");
         }
-        return Mono.just(projectBaseDTOList);
+        return projectBaseDTOList;
     }
 
     public IPage<ProjectBaseDTO> getProjectList(ProjectFilterDTO projectFilterDTO) {
@@ -170,7 +174,8 @@ public class DatabaseMetadataService {
      */
     @Tool(description = "备份项目数据结构")
     @Transactional(rollbackFor = Exception.class)
-    public Mono<List<String>> backupData(DatabaseConfig databaseConfig) {
+    public Mono<List<String>> backupData(DatabaseConfig databaseConfig, ToolContext toolContext) {
+        ReactiveContext.setUserId((String) toolContext.getContext().get("userId"));
         // 返回内容
         List<String> result = new ArrayList<>();
         DatabaseConfig config = databaseConfig;
@@ -232,7 +237,8 @@ public class DatabaseMetadataService {
     }
 
     @Tool(description = "比较两个版本的数据表的差异")
-    public Mono<List<String>> compareTable(VersionCompareDTO versionCompareDTO) {
+    public Mono<List<String>> compareTable(VersionCompareDTO versionCompareDTO, ToolContext toolContext) {
+        ReactiveContext.setUserId((String) toolContext.getContext().get("userId"));
         List<String> versionList = Arrays.asList(versionCompareDTO.getOldVersion(), versionCompareDTO.getNewVersion());
         boolean exists = projectVersionMapper.exists(new LambdaQueryWrapper<ProjectVersionPO>().eq(ProjectVersionPO::getProjectName, versionCompareDTO.getProjectName()).in(ProjectVersionPO::getVersion, versionList));
         if (versionList.size() != 2) {
@@ -291,7 +297,8 @@ public class DatabaseMetadataService {
     ;
 
     @Tool(description = "比较两个版本的字段的差异")
-    public Mono<List<String>> compareColumn(VersionCompareDTO versionCompareDTO) {
+    public List<String> compareColumn(VersionCompareDTO versionCompareDTO, ToolContext toolContext) {
+        ReactiveContext.setUserId((String) toolContext.getContext().get("userId"));
         List<String> versionList = Arrays.asList(versionCompareDTO.getOldVersion(), versionCompareDTO.getNewVersion());
         boolean exists = projectVersionMapper.exists(new LambdaQueryWrapper<ProjectVersionPO>().eq(ProjectVersionPO::getProjectName, versionCompareDTO.getProjectName()).in(ProjectVersionPO::getVersion, versionList));
         if (versionList.size() != 2) {
@@ -383,7 +390,7 @@ public class DatabaseMetadataService {
         operationInfoDTO.setProjectId(versionCompareDTO.getProjectId());
         operationInfoDTO.setProjectName(versionCompareDTO.getProjectName());
         operationService.insertCompareVersionFieldDiff(operationInfoDTO);
-        return Mono.just(differences);
+        return differences;
     }
 
     /**

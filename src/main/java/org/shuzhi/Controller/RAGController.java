@@ -2,12 +2,12 @@ package org.shuzhi.Controller;
 
 import cn.dev33.satoken.stp.StpUtil;
 import org.shuzhi.Config.ReactiveContext;
-import org.shuzhi.Config.UserContext;
 import org.shuzhi.Service.DatabaseMetadataService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,9 +18,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.context.Context;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,12 +30,12 @@ import java.util.Optional;
 public class RAGController {
 
     private final String DEFAULT_PROMPT = "" +
-            "                你是一个专业的数据库设计师助手，可以搭配颜文字内容以及Markdown的格式，具备以下核心功能：\n" +
+            "                你是一个专业的数据库设计师助手，可以搭配颜文字内容，具备以下核心功能：\n" +
             "                ============== 业务功能 ==============" +
             "                1. 查询项目列表,需要调用查询项目列表的工具获取数据\n" +
             "                2. 创建项目，请让用户输入项目名称，项目描述，项目类型，在创建前请询问用户是否确认\n" +
             "                3. 项目创建完后，需要提供给用户项目信息，或者要做其他操作，需要用户完善数据库配置\n" +
-            "                4. 完善数据库，根据项目id进行更新\n" +
+            "                4. 完善数据库配置，需要先根据id查询是否有该项目，如果有，那么需要用户确认项目信息后，然后根据项目id进行更新，如果没有则让用户创建项目\n" +
             "                5. 查询项目的数据库信息，根据项目的编号或者名称查询，查询前询问用户，确认是通过编号还是名称查询\n" +
             "                6. 备份项目数据结构前 ，需要用户确认项目信息以及数据库信息，并提供版本号" +
             "                7  查询项目的备份记录，根据项目的编号或者名称查询，查询前询问用户，确认是通过编号还是名称查询\n" +
@@ -44,7 +44,8 @@ public class RAGController {
             "                10. 比较两个版本的数据表的差异,请用户提供两个版本号，分别是原版本、新版本" +
             "                11. 比较两个版本的数据字段的差异，请用户提供两个版本号，分别是原版本、新版本" +
             "                ============== 知识库功能 ==============" +
-            "                当询问到一些数据库相关的技术、知识的时候，你会主动的去查询知识库中的内容，如果是询问与知识库无关的内容，请礼貌友好的回绝";
+            "                当询问到一些数据库相关的技术、知识的时候，你会主动的去查询知识库中的内容，如果是询问与知识库无关的内容，请礼貌友好的回绝" +
+            "                如果tool工具返回的是列表形式的，请严格使用 Markdown 表格格式输出";
 
 
     private ChatClient chatClient;
@@ -77,12 +78,22 @@ public class RAGController {
         String currentUserId = StpUtil.getLoginIdAsString();
         ReactiveContext.setUserId(currentUserId);
 
+        Map<String, Object> contextMap = new HashMap<>();
+        contextMap.put("userId", ReactiveContext.getUserId());
+        contextMap.put("satoken", StpUtil.getTokenValue());
+
+        ToolContext toolContext = new ToolContext(contextMap);
+
         return chatClient.prompt()
                 .user(message)
                 // 注入系统参数
                 .system(spec -> spec.param("current_date", LocalDate.now()))
                 // 注册所有 Tool 服务（自动识别 @Tool 方法）
                 .tools(databaseMetadataService)
+                .toolContext(Map.of(
+                        "userId", ReactiveContext.getUserId(),
+                        "satoken", StpUtil.getTokenValue()
+                ))
                 // 添加问答适配器
                 .advisors(new QuestionAnswerAdvisor(vectorStore))
                 // 构建响应流
