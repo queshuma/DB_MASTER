@@ -18,8 +18,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { link } from '../link/Link';
+
+const route = useRoute();
 
 // 表格列配置
 const columns = [
@@ -130,6 +133,11 @@ const handleTableChange = (pagination) => {
 
 // 页面加载时获取数据
 onMounted(() => {
+  getOperationRecords();
+});
+
+// 监听路由变化，重新加载数据
+watch(() => route.fullPath, () => {
   getOperationRecords();
 });
 </script>

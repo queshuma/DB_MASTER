@@ -59,12 +59,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useStore } from 'vuex';
+import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
 import link from '../link/Link.js';
 
 const store = useStore();
+const route = useRoute();
 const fileInput = ref(null);
 const defaultAvatar = 'https://gw.alipayobjects.com/zos/rmsportal/BiazfanxmamNRoxxVxka.png';
 
@@ -212,6 +214,12 @@ const handleCancel = () => {
 
 // 初始加载
 onMounted(() => {
+  getUserInfo();
+  getAvatarImage();
+});
+
+// 监听路由变化，重新加载数据
+watch(() => route.fullPath, () => {
   getUserInfo();
   getAvatarImage();
 });

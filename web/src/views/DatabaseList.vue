@@ -1,11 +1,12 @@
 <script setup>
-import { ref, h, onMounted } from 'vue';
+import { ref, h, onMounted, watch } from 'vue';
 import { Table, Button, message, Input, Pagination, Modal } from 'ant-design-vue';
 import { PlusOutlined, SearchOutlined, InfoCircleOutlined } from '@ant-design/icons-vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import link from '../link/Link.js';
 
 const router = useRouter();
+const route = useRoute();
 
 // 项目列表数据
 const projectData = ref([]);
@@ -34,6 +35,11 @@ const getProjectList = async () => {
 
 // 初始加载数据
 onMounted(() => {
+  getProjectList();
+});
+
+// 监听路由变化，重新加载数据
+watch(() => route.fullPath, () => {
   getProjectList();
 });
 

@@ -51,7 +51,13 @@ router.beforeEach((to, from, next) => {
         next('/login');
       });
   } else {
-    next();
+    // 确保在路由跳转时触发组件的重新渲染
+    if (to.path !== from.path) {
+      next();
+    } else {
+      // 如果是相同路径的跳转，强制刷新页面
+      window.location.reload();
+    }
   }
 });
 

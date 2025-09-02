@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted } from 'vue';
 import MarkdownIt from 'markdown-it';
-import { linkStream } from '../link/Link';
+import { streamingRequest } from '../link/Link';
 import link from '../link/Link';
 
 // 创建Markdown实例并配置以更好地处理空行
@@ -65,113 +65,36 @@ const sendMessage = async () => {
   try {
     console.log('发送流式请求到: /api/database/ai/generateStreamAsString');
     
-    // 使用linkStream函数发送请求
-    const { response, abortController: streamAbortController } = await linkStream(
-      '/api/database/ai/generateStreamAsString', 
-      'GET', 
-      {}, 
-      { message: userInput }, 
-      { 'accept': 'text/event-stream' },
-      true
-    );
-    
-    // 保存abortController引用以便后续取消请求
-    abortController = streamAbortController;
-    
-    // 记录cookie相关信息
-    console.log('流式请求成功发送，withCredentials已启用');
-    console.log('Response Set-Cookie:', response.headers.get('set-cookie'));
-
-    if (!response.ok) {
-      throw new Error(`请求失败: ${response.status} ${response.statusText}`);
-    }
-
-    // 流式处理响应 - 打字机效果实现
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
     const botMessage = messages.value.find(m => m.id === botMsgId);
-    let complete = false;
-    let pendingText = '';  // 待处理的文本
-    let isTyping = false;  // 是否正在打字中
-    const TYPE_SPEED = 20;  // 打字速度(ms/字符)
-
-    // 打字机函数 - 逐字显示文本
-    const typeWriter = () => {
-      if (pendingText.length === 0) {
-        isTyping = false;
-        return;
-      }
-
-      isTyping = true;
-      const char = pendingText.charAt(0);
-      pendingText = pendingText.substring(1);
-
-      botMessage.content += char;
-      scrollToBottom();
-
-      // 调整不同字符的打字速度，提升真实感
-      const delay = char === '\n' || char === '。' || char === '！' || char === '？' ? TYPE_SPEED * 3 : TYPE_SPEED;
-      setTimeout(typeWriter, delay);
-    };
-
-    while (!complete && !abortController.signal.aborted) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      if (botMessage) {
-        // 处理流式数据
-        let messageContent = chunk.replace(/data:/g, '').trim();
-        messageContent = messageContent.replace(/white-space:\s*['"]?pre-wrap['"]?;/gi, '').trim();
-        
-        // 移除可能重复的用户输入前缀
-        if (messageContent.startsWith(userInput)) {
-          messageContent = messageContent.slice(userInput.length).trim();
+    streamingRequest(`http://localhost:8000/api/database/ai/generateStreamAsString?message=${encodeURIComponent(userInput)}`)
+      .onMessage(data => {
+        if (data === '[complete]') {
+          botMessage.isStreaming = false;
+          eventSource.close();
+          return;
         }
-
-        // 处理完成标记
-        if (messageContent.includes('[complete]')) {
-          complete = true;
-          messageContent = messageContent.replace('[complete]', '').trim();
-        }
-
-        if (messageContent) {
-          // 添加到待处理文本
-          pendingText += messageContent;
-          // 如果当前没有在打字，则开始打字
-          if (!isTyping) {
-            typeWriter();
-          }
-        }
-      }
-    }
-
-    // 确保所有待处理文本都被显示
-    const ensureAllTextDisplayed = () => {
-      if (pendingText.length > 0) {
-        botMessage.content += pendingText;
-        pendingText = '';
+        botMessage.content += data;
         scrollToBottom();
-      }
-    };
-
-    // 确保所有文本都已显示后再标记为完成
-    if (pendingText.length > 0) {
-      await new Promise(resolve => {
-        const checkPending = () => {
-          if (pendingText.length === 0) {
-            resolve();
-          } else {
-            setTimeout(checkPending, 100);
-          }
-        };
-        checkPending();
+      })
+      .onComplete(() => {
+        isSending.value = false;
+        abortController = null;
+      })
+      .onError(error => {
+        console.error('流式传输错误:', error);
+        botMessage.content = error.message.includes('aborted') ? '消息已取消' : '连接异常，请重试';
+        botMessage.isStreaming = false;
+        isSending.value = false;
+        abortController = null;
       });
-    }
 
-    if (botMessage) {
-      botMessage.isStreaming = false;
-    }
+    abortController = {
+      abort: () => {
+        streamingRequest.abort();
+        console.log('流式请求已中止');
+      },
+      signal: { aborted: false }
+    };
   } catch (error) {
     if (error.name !== 'AbortError') {
       const botMessage = messages.value.find(m => m.id === botMsgId);
@@ -223,7 +146,7 @@ onUnmounted(() => {
             </span>
             <div class="message-content">
               <div v-html="md.render(msg.content)"></div>
-              <span v-if="msg.isStreaming" class="loading-dot">...</span>
+              <!--<span v-if="msg.isStreaming && !msg.content.endsWith('[complete]')" class="loading-dot">...</span>-->
             </div>
           </div>
         </a-list-item>

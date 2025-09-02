@@ -29,23 +29,33 @@ import java.util.Optional;
 @RequestMapping("/api/database")
 public class RAGController {
 
-    private final String DEFAULT_PROMPT = "" +
-            "                你是一个专业的数据库设计师助手，可以搭配颜文字内容，具备以下核心功能：\n" +
-            "                ============== 业务功能 ==============" +
-            "                1. 查询项目列表,需要调用查询项目列表的工具获取数据\n" +
-            "                2. 创建项目，请让用户输入项目名称，项目描述，项目类型，在创建前请询问用户是否确认\n" +
-            "                3. 项目创建完后，需要提供给用户项目信息，或者要做其他操作，需要用户完善数据库配置\n" +
-            "                4. 完善数据库配置，需要先根据id查询是否有该项目，如果有，那么需要用户确认项目信息后，然后根据项目id进行更新，如果没有则让用户创建项目\n" +
-            "                5. 查询项目的数据库信息，根据项目的编号或者名称查询，查询前询问用户，确认是通过编号还是名称查询\n" +
-            "                6. 备份项目数据结构前 ，需要用户确认项目信息以及数据库信息，并提供版本号" +
-            "                7  查询项目的备份记录，根据项目的编号或者名称查询，查询前询问用户，确认是通过编号还是名称查询\n" +
-            "                8. 查询项目的数据库配置，查询当前的数据了有哪些" +
-            "                9. 数据库字段对比，根据两个版本的字段设计，获取字段的调整" +
-            "                10. 比较两个版本的数据表的差异,请用户提供两个版本号，分别是原版本、新版本" +
-            "                11. 比较两个版本的数据字段的差异，请用户提供两个版本号，分别是原版本、新版本" +
-            "                ============== 知识库功能 ==============" +
-            "                当询问到一些数据库相关的技术、知识的时候，你会主动的去查询知识库中的内容，如果是询问与知识库无关的内容，请礼貌友好的回绝" +
-            "                如果tool工具返回的是列表形式的，请严格使用 Markdown 表格格式输出";
+    public static final String COMPLETE = "[complete]";
+    private final String DEFAULT_PROMPT = """
+    输出内容要求严格遵循以下规范：
+    1. 自然语言开头总结项目信息，然后换行
+    2. 用 Markdown 表格展示项目数据
+    3. 每行一条记录，表头和分隔行必须包含
+    4. 使用换行符分隔每行
+    5. 在结尾提供操作提示
+
+    你是一个专业的数据库设计师助手，可以搭配颜文字内容，具备以下核心功能：
+    ============= 业务功能 ==============
+    1. 查询项目列表，需要调用查询项目列表的工具获取数据
+    2. 创建项目，请让用户输入项目名称，项目描述，项目类型，在创建前请询问用户是否确认
+    3. 项目创建完后，需要提供给用户项目信息，或者要做其他操作，需要用户完善数据库配置
+    4. 完善数据库配置，需要先根据id查询是否有该项目，如果有，那么需要用户确认项目信息后，然后根据项目id进行更新，如果没有则让用户创建项目
+    5. 查询项目的数据库信息，根据项目的编号或者名称查询，查询前询问用户，确认是通过编号还是名称查询
+    6. 备份项目数据结构前，需要用户确认项目信息以及数据库信息，并提供版本号
+    7. 查询项目的备份记录，根据项目的编号或者名称查询，查询前询问用户，确认是通过编号还是名称查询
+    8. 查询项目的数据库配置，查询当前的数据有哪些
+    9. 数据库字段对比，根据两个版本的字段设计，获取字段的调整
+    10. 比较两个版本的数据表的差异，请用户提供两个版本号，分别是原版本、新版本
+    11. 比较两个版本的数据字段的差异，请用户提供两个版本号，分别是原版本、新版本
+
+    ============= 知识库功能 ==============
+    当询问到一些数据库相关的技术、知识的时候，你会主动的去查询知识库中的内容，如果是询问与知识库无关的内容，请礼貌友好的回绝
+    """;
+
 
 
     private ChatClient chatClient;
@@ -73,48 +83,32 @@ public class RAGController {
 
     @GetMapping(value = "/ai/generateStreamAsString", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> generateStreamAsString(@RequestParam(value = "message", defaultValue = "") String message) {
-        // 获取当前登录用户ID并设置到ReactiveContext中
-        // 这一步设置会被后续的ToolContextAspect检测到并保留
-        String currentUserId = StpUtil.getLoginIdAsString();
-        ReactiveContext.setUserId(currentUserId);
-
-        Map<String, Object> contextMap = new HashMap<>();
-        contextMap.put("userId", ReactiveContext.getUserId());
-        contextMap.put("satoken", StpUtil.getTokenValue());
-
-        ToolContext toolContext = new ToolContext(contextMap);
-
-        return chatClient.prompt()
+        Flux<String> result = chatClient.prompt()
                 .user(message)
                 // 注入系统参数
                 .system(spec -> spec.param("current_date", LocalDate.now()))
                 // 注册所有 Tool 服务（自动识别 @Tool 方法）
                 .tools(databaseMetadataService)
                 .toolContext(Map.of(
-                        "userId", ReactiveContext.getUserId(),
+                        "userId", StpUtil.getLoginId(),
                         "satoken", StpUtil.getTokenValue()
                 ))
                 // 添加问答适配器
                 .advisors(new QuestionAnswerAdvisor(vectorStore))
                 // 构建响应流
                 .stream()
-                .chatResponse()
+                .content();
+//                .chatResponse()
                 // 在每个响应中确保上下文正确设置
-                .flatMap(resp -> {
-                    // 每次处理响应时都重新设置用户上下文
-                    ReactiveContext.setUserId(currentUserId);
-                    return Mono.just(resp);
-                })
-                // 最终追加结束标识
-                .map(response -> {
-                    // 可选：将用户信息注入到响应中
-                    return Optional.ofNullable(response.getResult().getOutput().getText()).orElse("") ;
-                })
+//                .flatMap(resp -> Mono.just(resp))
+//                // 最终追加结束标识
+//                .map(response -> {
+//                    // 可选：将用户信息注入到响应中
+//                    System.out.println(Optional.ofNullable(response.getResult().getOutput().getText()).orElse(""));
+//                    return Optional.ofNullable(response.getResult().getOutput().getText()).orElse("");
+//                });
+        return result
                 // 添加结束标识
-                .concatWith(Flux.just("[complete]"));
-                // 异常处理（可选）
-//                .onErrorResume(e -> Flux.just("[error: " + e.getMessage() + "]"))
-                // 确保上下文清理
-//                .doFinally(signalType -> UserContext.cleanup());
+                .concatWith(Flux.just(COMPLETE));
     }
 }
