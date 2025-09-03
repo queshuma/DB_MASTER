@@ -1,5 +1,12 @@
 import axios from 'axios';
 
+/**
+ * 线上环境
+ */
+// const baseURL = '/api';
+/**
+ * 本地环境
+ */
 const baseURL = 'http://localhost:8000';
 
 

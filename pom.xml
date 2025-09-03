@@ -9,9 +9,9 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>org.shuzhi.library</groupId>
-    <artifactId>DataStorage</artifactId>
+    <artifactId>DB-Master</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>DBMaster</name>
+    <name>DB-Master</name>
     <description>DBMaster</description>
     <properties>
         <java.version>17</java.version>
