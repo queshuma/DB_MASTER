@@ -1,4 +1,4 @@
-package org.shuzhi.Config;
+package org.shuzhi.Common;
 
 import com.alibaba.ttl.TransmittableThreadLocal;
 

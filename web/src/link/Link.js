@@ -1,8 +1,11 @@
 import axios from 'axios';
 
+const baseURL = 'http://localhost:8000';
+
+
 // 创建axios实例
 const service = axios.create({
-    baseURL: 'http://localhost:8000', // 设置基础URL
+    baseURL: baseURL, // 设置基础URL
     timeout: 5000, // 设置超时时间
     withCredentials: true // 默认携带cookie
 });
@@ -45,7 +48,7 @@ service.interceptors.response.use(
 
 // 封装请求函数
 const streamingRequest = (url, params = {}, options = { withCredentials: true }) => {
-  const eventSource = new EventSource(`${url}?${new URLSearchParams(params).toString()}`, options);
+  const eventSource = new EventSource(baseURL + `${url}?${new URLSearchParams(params).toString()}`, options);
   
   const controller = {
     onMessage: (callback) => {

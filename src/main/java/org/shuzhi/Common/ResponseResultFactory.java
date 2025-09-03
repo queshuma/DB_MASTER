@@ -1,4 +1,4 @@
-package org.shuzhi.Config;
+package org.shuzhi.Common;
 
 import org.shuzhi.Common.ResponseResult;
 import org.shuzhi.Common.ResultCode;

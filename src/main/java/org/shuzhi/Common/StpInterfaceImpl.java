@@ -1,4 +1,4 @@
-package org.shuzhi.Config;
+package org.shuzhi.Common;
 
 import cn.dev33.satoken.stp.StpInterface;
 import org.shuzhi.Utils.SysUserUtils;

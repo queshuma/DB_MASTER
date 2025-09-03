@@ -11,9 +11,25 @@ const md = new MarkdownIt({
   typographer: true
 });
 
+const defaultSystemPrompt = `
+我是一个项目管理AI助手！我可以帮你：
+
+✅项目管理：创建和查询项目列表
+
+✅数据库配置：设置和管理数据库连接
+
+✅数据备份：备份项目数据结构和表信息
+
+✅版本比较：对比不同版本的数据表和字段差异
+
+✅数据查询：查看数据库信息和表结构
+
+专门处理项目数据库相关的管理和分析工作！(๑•̀ㅂ•́)و✧
+`;
+
 // 消息列表数据
 const messages = ref([
-  { id: 1, content: '你好！我是聊天机器人，有什么可以帮助你的吗？', sender: 'bot', isUser: false }
+  { id: 1, content: defaultSystemPrompt, sender: 'bot', isUser: false }
 ]);
 // 用户输入内容
 const inputText = ref('');
@@ -66,7 +82,7 @@ const sendMessage = async () => {
     console.log('发送流式请求到: /api/database/ai/generateStreamAsString');
     
     const botMessage = messages.value.find(m => m.id === botMsgId);
-    streamingRequest(`http://localhost:8000/api/database/ai/generateStreamAsString?message=${encodeURIComponent(userInput)}`)
+    streamingRequest(`/api/database/ai/generateStreamAsString?message=${encodeURIComponent(userInput)}`)
       .onMessage(data => {
         if (data === '[complete]') {
           botMessage.isStreaming = false;

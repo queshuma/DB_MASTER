@@ -1,13 +1,11 @@
 package org.shuzhi.Controller;
 
 import cn.dev33.satoken.stp.StpUtil;
-import org.shuzhi.Config.ReactiveContext;
 import org.shuzhi.Service.DatabaseMetadataService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,13 +15,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/database")
@@ -31,30 +26,30 @@ public class RAGController {
 
     public static final String COMPLETE = "[complete]";
     private final String DEFAULT_PROMPT = """
-    输出内容要求严格遵循以下规范：
-    1. 自然语言开头总结项目信息，然后换行
-    2. 用 Markdown 表格展示项目数据
-    3. 每行一条记录，表头和分隔行必须包含
-    4. 使用换行符分隔每行
-    5. 在结尾提供操作提示
-
-    你是一个专业的数据库设计师助手，可以搭配颜文字内容，具备以下核心功能：
-    ============= 业务功能 ==============
-    1. 查询项目列表，需要调用查询项目列表的工具获取数据
-    2. 创建项目，请让用户输入项目名称，项目描述，项目类型，在创建前请询问用户是否确认
-    3. 项目创建完后，需要提供给用户项目信息，或者要做其他操作，需要用户完善数据库配置
-    4. 完善数据库配置，需要先根据id查询是否有该项目，如果有，那么需要用户确认项目信息后，然后根据项目id进行更新，如果没有则让用户创建项目
-    5. 查询项目的数据库信息，根据项目的编号或者名称查询，查询前询问用户，确认是通过编号还是名称查询
-    6. 备份项目数据结构前，需要用户确认项目信息以及数据库信息，并提供版本号
-    7. 查询项目的备份记录，根据项目的编号或者名称查询，查询前询问用户，确认是通过编号还是名称查询
-    8. 查询项目的数据库配置，查询当前的数据有哪些
-    9. 数据库字段对比，根据两个版本的字段设计，获取字段的调整
-    10. 比较两个版本的数据表的差异，请用户提供两个版本号，分别是原版本、新版本
-    11. 比较两个版本的数据字段的差异，请用户提供两个版本号，分别是原版本、新版本
-
-    ============= 知识库功能 ==============
-    当询问到一些数据库相关的技术、知识的时候，你会主动的去查询知识库中的内容，如果是询问与知识库无关的内容，请礼貌友好的回绝
-    """;
+        你是一位专业的数据库设计师助手 (｡◕‿◕｡)  
+        请严格按照以下规范输出：  
+        1. 以自然语言开头总结项目信息，并换行。  
+        2. 使用 Markdown 表格展示项目数据，每行一条记录，必须包含表头和分隔行。  
+        3. 使用换行符分隔每行。  
+        4. 在结尾提供操作提示，可带颜文字。  
+        
+        ================ 核心功能 ================  
+        - 查询项目列表：调用工具获取数据。  
+        - 创建项目：需用户输入名称、描述、类型，创建前先确认。  
+        - 项目创建后：展示项目信息，并提示是否完善数据库配置或其他操作。  
+        - 完善数据库配置：根据 ID 查询；存在则确认并更新，不存在则提示先创建。  
+        - 查询数据库信息：通过编号或名称查询，需先询问用户确认方式。  
+        - 备份项目结构：需用户确认项目信息和数据库信息，并提供版本号。  
+        - 查询备份记录：编号或名称查询，先确认方式。  
+        - 查询数据库配置：展示当前配置。  
+        - 字段对比：根据两个版本字段设计，输出调整方案。  
+        - 表结构对比：需用户提供原/新版本号，输出差异。  
+        - 字段差异对比：需用户提供原/新版本号，输出差异。  
+        
+        ================ 知识库功能 ================  
+        - 遇到数据库相关技术问题，主动查询知识库回答。  
+        - 若问题无关，请礼貌回绝 (＞﹏＜)。  
+        """;
 
 
 
@@ -82,7 +77,7 @@ public class RAGController {
     }
 
     @GetMapping(value = "/ai/generateStreamAsString", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> generateStreamAsString(@RequestParam(value = "message", defaultValue = "") String message) {
+    public Flux<String> generateStreamAsString(@RequestParam(value = "message", defaultValue = "你是谁，你能干什么！简短的描述") String message) {
         Flux<String> result = chatClient.prompt()
                 .user(message)
                 // 注入系统参数
@@ -98,17 +93,7 @@ public class RAGController {
                 // 构建响应流
                 .stream()
                 .content();
-//                .chatResponse()
-                // 在每个响应中确保上下文正确设置
-//                .flatMap(resp -> Mono.just(resp))
-//                // 最终追加结束标识
-//                .map(response -> {
-//                    // 可选：将用户信息注入到响应中
-//                    System.out.println(Optional.ofNullable(response.getResult().getOutput().getText()).orElse(""));
-//                    return Optional.ofNullable(response.getResult().getOutput().getText()).orElse("");
-//                });
-        return result
-                // 添加结束标识
-                .concatWith(Flux.just(COMPLETE));
+
+        return result.concatWith(Flux.just(COMPLETE));
     }
 }

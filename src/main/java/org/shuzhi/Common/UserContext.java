@@ -1,6 +1,4 @@
-package org.shuzhi.Config;
-
-import cn.dev33.satoken.stp.StpUtil;
+package org.shuzhi.Common;
 
 public class UserContext {
     public static String getUserId() {
