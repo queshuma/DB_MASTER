@@ -147,16 +147,16 @@ public class DatabaseMetadataService {
     }
 
     @Tool(description = "根据编号或名称查询备份记录")
-    public Mono<List<ProjectVersionPO>> getProjectHistory(ProjectBaseDTO input) {
-        return Mono.just(ProjectInfoMapstruct.INSTANCE.toProjectVersionList(projectVersionMapper.selectList(new LambdaQueryWrapper<ProjectVersionPO>()
+    public List<ProjectVersionPO> getProjectHistory(ProjectBaseDTO input) {
+        return ProjectInfoMapstruct.INSTANCE.toProjectVersionList(projectVersionMapper.selectList(new LambdaQueryWrapper<ProjectVersionPO>()
                 .eq(!Objects.isNull(input.getId()), ProjectVersionPO::getSourceId, input.getId())
-                .eq(!Objects.isNull(input.getProjectName()), ProjectVersionPO::getProjectName, input.getProjectName()))));
+                .eq(!Objects.isNull(input.getProjectName()), ProjectVersionPO::getProjectName, input.getProjectName())));
     }
 
     @Tool(description = "根据数据库查询表")
-    public Mono<List<TableInfo>> getDataTableList(DatabaseConfig input) {
+    public List<TableInfo> getDataTableList(DatabaseConfig input) {
         try {
-            return Mono.just(this.getTableInfo(input));
+            return this.getTableInfo(input);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } catch (ClassNotFoundException e) {
@@ -173,7 +173,7 @@ public class DatabaseMetadataService {
      */
     @Tool(description = "备份项目数据结构")
     @Transactional(rollbackFor = Exception.class)
-    public Mono<List<String>> backupData(DatabaseConfig databaseConfig, ToolContext toolContext) {
+    public List<String> backupData(DatabaseConfig databaseConfig, ToolContext toolContext) {
         ReactiveContext.setUserId((String) toolContext.getContext().get("userId"));
         // 返回内容
         List<String> result = new ArrayList<>();
@@ -232,11 +232,11 @@ public class DatabaseMetadataService {
         operationInfoDTO.setProjectId(config.getId());
         operationInfoDTO.setProjectName(config.getProjectName());
         operationService.insertBackupProject(operationInfoDTO);
-        return Mono.just(result);
+        return result;
     }
 
     @Tool(description = "比较两个版本的数据表的差异")
-    public Mono<List<String>> compareTable(VersionCompareDTO versionCompareDTO, ToolContext toolContext) {
+    public List<String> compareTable(VersionCompareDTO versionCompareDTO, ToolContext toolContext) {
         ReactiveContext.setUserId((String) toolContext.getContext().get("userId"));
         List<String> versionList = Arrays.asList(versionCompareDTO.getOldVersion(), versionCompareDTO.getNewVersion());
         boolean exists = projectVersionMapper.exists(new LambdaQueryWrapper<ProjectVersionPO>().eq(ProjectVersionPO::getProjectName, versionCompareDTO.getProjectName()).in(ProjectVersionPO::getVersion, versionList));
@@ -289,7 +289,7 @@ public class DatabaseMetadataService {
         operationInfoDTO.setProjectId(versionCompareDTO.getProjectId());
         operationInfoDTO.setProjectName(versionCompareDTO.getProjectName());
         operationService.insertCompareVersionTableDiff(operationInfoDTO);
-        return Mono.just(differences);
+        return differences;
 
     }
 
