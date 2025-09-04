@@ -24,7 +24,7 @@ import link from './link/Link.js';
 // 登录拦截和用户信息初始化
 router.beforeEach((to, from, next) => {
   // 不需要登录的页面
-  const publicPages = ['/register','/login', '/email-login'];
+  const publicPages = ['/', '/register','/login', '/email-login'];
   const authRequired = !publicPages.includes(to.path);
   const loggedIn = localStorage.getItem('token');
   const hasUserInfo = store.getters.isLoggedIn;
@@ -51,13 +51,8 @@ router.beforeEach((to, from, next) => {
         next('/login');
       });
   } else {
-    // 确保在路由跳转时触发组件的重新渲染
-    if (to.path !== from.path) {
-      next();
-    } else {
-      // 如果是相同路径的跳转，强制刷新页面
-      window.location.reload();
-    }
+    // 正常处理路由跳转
+    next();
   }
 });
 

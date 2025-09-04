@@ -18,7 +18,7 @@ const selectedKeys = ref(['1']);
 const collapsed = ref(false);
 
 // 需要全屏显示的页面
-const fullPageRoutes = ['/login', '/register', '/email-login'];
+const fullPageRoutes = ['/', '/login', '/register', '/email-login'];
 
 // 菜单数据
 const menuItems = [
@@ -51,7 +51,7 @@ const handleMenuSelect = (e) => {
   </div>
   <a-layout v-else id="components-layout-demo-custom-trigger" style="min-height: 100vh;">
     <a-layout-sider v-model:collapsed="collapsed" :trigger="null" collapsible>
-      <div class="logo">{{ collapsed ? 'M' : 'DB Master大师' }}</div>
+      <div class="logo">{{ collapsed ? 'DBM' : 'DB Master' }}</div>
       <a-menu v-model:selectedKeys="selectedKeys" theme="dark" mode="inline" @select="handleMenuSelect">
         <a-menu-item v-for="item in menuItems" :key="item.key">
           <component :is="item.icon" />
@@ -96,17 +96,24 @@ const handleMenuSelect = (e) => {
 }
 
 #components-layout-demo-custom-trigger .logo {
-  height: 40px;
-  background: linear-gradient(90deg, #1890ff 0%, #096dd9 100%);
+  height: 50px;
+  background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
   margin: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: bold;
-  font-size: 16px;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  font-size: 18px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+#components-layout-demo-custom-trigger .logo:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }
 
 .site-layout .site-layout-background {

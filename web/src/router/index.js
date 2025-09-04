@@ -7,8 +7,14 @@ import Login from '../views/Login.vue';
 import Register from '../views/Register.vue';
 import EmailLogin from '../views/EmailLogin.vue';
 
+import HomeView from '@/views/HomeView.vue'
+
 const routes = [
-  { path: '/', redirect: '/login' },
+  {
+    path: '/',
+    name: 'home',
+    component: HomeView
+  },
   { path: '/login', name: 'Login', component: Login },
   { path: '/register', name: 'Register', component: Register },
   { path: '/email-login', name: 'EmailLogin', component: EmailLogin },
