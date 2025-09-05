@@ -4,6 +4,7 @@ import { Table, Button, message, Input, Pagination, Modal } from 'ant-design-vue
 import { PlusOutlined, SearchOutlined, InfoCircleOutlined } from '@ant-design/icons-vue';
 import { useRouter, useRoute } from 'vue-router';
 import link from '../link/Link.js';
+import FloatingButton from '../components/FloatingButton.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -188,6 +189,9 @@ const handleDetail = async (record) => {
       />
     </div>
   </div>
+  
+  <!-- 右侧悬浮球按钮 -->
+  <FloatingButton @onClick="handleAdd" />
 </template>
 
 <style scoped>
