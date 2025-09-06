@@ -41,7 +41,7 @@ const handleUpdateVisible = (newValue) => {
 .floating-button {
   position: fixed;
   right: 30px;
-  bottom: 30px;
+  bottom: calc(100vh / 3); /* 位于页面的2/3位置（从顶部算起） */
   width: 60px;
   height: 60px;
   font-size: 20px;

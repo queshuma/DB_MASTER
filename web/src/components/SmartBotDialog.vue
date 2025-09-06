@@ -96,8 +96,8 @@ const handleClose = () => {
 
 .dialog-container {
   position: fixed;
-  right: calc(30px + 60px + 10px + 400px); /* 悬浮按钮右侧距离 + 按钮宽度 + 间距 + 对话框宽度 */
-  bottom: 30px; /* 与悬浮按钮底部对齐 */
+  right: calc(30px + 60px + 10px); /* 悬浮按钮右侧30px + 按钮宽度60px + 间距10px */
+  bottom: calc(100vh / 3); /* 与悬浮按钮底部对齐，位于页面的2/3位置 */
   width: 400px;
   background-color: white;
   border-radius: 8px;
