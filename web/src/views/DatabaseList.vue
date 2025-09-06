@@ -1,7 +1,7 @@
 <script setup>
 import { ref, h, onMounted, watch } from 'vue';
 import { Table, Button, message, Input, Pagination, Modal } from 'ant-design-vue';
-import { PlusOutlined, SearchOutlined, InfoCircleOutlined } from '@ant-design/icons-vue';
+import { PlusOutlined, SearchOutlined, InfoCircleOutlined, LinkOutlined, HistoryOutlined } from '@ant-design/icons-vue';
 import { useRouter, useRoute } from 'vue-router';
 import link from '../link/Link.js';
 import FloatingButton from '../components/FloatingButton.vue';
@@ -103,9 +103,21 @@ const columns = [
         h(Button, {
           type: 'primary',
           size: 'small',
+          onClick: () => handlePing(record),
+          icon: h(LinkOutlined)
+        }, 'Ping'),
+        h(Button, {
+          type: 'primary',
+          size: 'small',
           onClick: () => handleDetail(record),
           icon: h(InfoCircleOutlined)
-        }, '详情')
+        }, '详情'),
+        h(Button, {
+          type: 'default',
+          size: 'small',
+          onClick: () => handleBackupRecords(record),
+          icon: h(HistoryOutlined)
+        }, '备份记录')
       ]);
     }
   }
@@ -117,33 +129,52 @@ const handleAdd = () => {
   // 这里可以添加路由跳转或弹窗添加逻辑
 };
 
-// 处理详情事件
-const handleDetail = async (record) => {
+// 为FloatingButton组件创建引用
+const floatingButtonRef = ref(null);
+
+// 处理Ping事件
+const handlePing = async (record) => {
   try {
-    const response = await link('/project/getDetail', 'get', {
-    }, {      
+    // 发起GET请求到/project/connectCheck接口
+    const response = await link('/project/connectCheck', 'get', {
       projectId: record.id
     });
     
-    // 显示详情弹窗
-    Modal.info({
-      title: '项目详情',
-      content: h('div', null, [
-        h('p', null, [h('strong', null, 'ID:'), ' ', response.id]),
-        h('p', null, [h('strong', null, '项目名称:'), ' ', response.projectName]),
-        h('p', null, [h('strong', null, '项目描述:'), ' ', response.projectDescription]),
-        h('p', null, [h('strong', null, '项目类型:'), ' ', response.projectType]),
-        h('p', null, [h('strong', null, '数据库地址:'), ' ', response.databaseUrl]),
-        h('p', null, [h('strong', null, '数据库驱动:'), ' ', response.databaseDriver]),
-        h('p', null, [h('strong', null, '数据库用户:'), ' ', response.databaseUser]),
-        h('p', null, [h('strong', null, '数据库密码:'), ' ', response.databasePassword]),
-        h('p', null, [h('strong', null, '数据库名称:'), ' ', response.databaseName])
-      ]),
-      onOk() {},
-    });
+    // 根据返回结果显示不同的消息
+    if (response === true) {
+      message.success('连接成功');
+    } else {
+      message.error('连接失败');
+    }
   } catch (error) {
-    message.error('获取项目详情失败: ' + error.message);
-    console.error('Failed to fetch project detail:', error);
+    message.error('操作失败: ' + error.message);
+    console.error('Ping operation failed:', error);
+  }
+};
+
+// 处理详情事件
+const handleDetail = async (record) => {
+  try {
+    // 打开悬浮球对话框请求
+    if (floatingButtonRef.value) {
+      floatingButtonRef.value.openDialogWithMessage('查询项目id为' + record.id + '项目详情');
+    }
+  } catch (error) {
+    message.error('操作失败: ' + error.message);
+    console.error('Operation failed:', error);
+  }
+};
+
+// 处理备份记录事件
+const handleBackupRecords = async (record) => {
+  try {
+    // 打开悬浮球对话框请求
+    if (floatingButtonRef.value) {
+      floatingButtonRef.value.openDialogWithMessage('查询项目id为' + record.id + '的备份记录');
+    }
+  } catch (error) {
+    message.error('操作失败: ' + error.message);
+    console.error('Backup records operation failed:', error);
   }
 };
 </script>
@@ -191,7 +222,7 @@ const handleDetail = async (record) => {
   </div>
   
   <!-- 右侧悬浮球按钮 -->
-  <FloatingButton @onClick="handleAdd" />
+  <FloatingButton @onClick="handleAdd" ref="floatingButtonRef" />
 </template>
 
 <style scoped>

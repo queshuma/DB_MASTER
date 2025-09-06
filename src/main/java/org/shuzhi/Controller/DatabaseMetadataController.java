@@ -20,14 +20,34 @@ public class DatabaseMetadataController {
     @Autowired
     private DatabaseMetadataService metadataService;
 
+    /**
+     * 获取项目列表
+     * @param projectFilterDTO
+     * @return
+     */
     @PostMapping("/getList")
     public IPage<ProjectBaseDTO> getProjectList(@RequestBody ProjectFilterDTO projectFilterDTO) {
         return metadataService.getProjectList(projectFilterDTO);
     }
 
+    /**
+     * 获取数据详情
+     * @param projectId
+     * @return
+     */
     @GetMapping("/getDetail")
     public ProjectDatabaseDTO getDetail(@RequestParam String projectId) {
         return metadataService.getDetail(projectId);
+    }
+
+    /**
+     * 测试项目连接
+     * @param projectId
+     * @return
+     */
+    @GetMapping("/connectCheck")
+    public Boolean connectCheck(@RequestParam String projectId) throws SQLException, ClassNotFoundException {
+        return metadataService.connectCheck(projectId);
     }
 
 }

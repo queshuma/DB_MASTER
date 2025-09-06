@@ -9,17 +9,21 @@
   <!-- 智能机器人对话框组件 -->
   <SmartBotDialog
     :visible="dialogVisible"
+    :initial-message="initialMessage"
     @update:visible="handleUpdateVisible"
     @close="handleDialogClose"
   />
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, defineExpose } from 'vue';
 import SmartBotDialog from './SmartBotDialog.vue';
 
 // 控制对话框显示状态
 const dialogVisible = ref(false);
+
+// 外部传入的初始消息
+const initialMessage = ref('');
 
 // 内部点击处理
 const handleClick = () => {
@@ -35,6 +39,17 @@ const handleDialogClose = () => {
 const handleUpdateVisible = (newValue) => {
   dialogVisible.value = newValue;
 };
+
+// 从外部打开对话框并设置初始消息
+const openDialogWithMessage = (message) => {
+  initialMessage.value = message;
+  dialogVisible.value = true;
+};
+
+// 暴露方法给父组件
+defineExpose({
+  openDialogWithMessage
+});
 </script>
 
 <style scoped>

@@ -13,6 +13,8 @@ import org.shuzhi.Mapstruct.ColumnInfoMapstruct;
 import org.shuzhi.Mapstruct.ProjectInfoMapstruct;
 import org.shuzhi.PO.*;
 import org.shuzhi.Config.DatabaseConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 
@@ -38,6 +40,8 @@ public class DatabaseMetadataService {
     private final ProjectVersionMapper projectVersionMapper;
 
     private final OperationService operationService;
+
+    private final Logger logger = LoggerFactory.getLogger(DatabaseMetadataService.class);
 
     public List<String> getTableNames(DatabaseConfig config) {
         List<String> tableNames = new ArrayList<>();
@@ -84,6 +88,11 @@ public class DatabaseMetadataService {
             throw new RuntimeException(e);
         }
         return tableInfos;
+    }
+
+    @Tool(description = "查询项目详情")
+    public ProjectDatabaseDTO getDetail(String projectId) {
+        return ProjectInfoMapstruct.INSTANCE.toProjectDatabaseDTO(projectInfoMapper.selectById(projectId));
     }
 
     @Tool(description = "创建项目")
@@ -419,7 +428,19 @@ public class DatabaseMetadataService {
         );
     }
 
-    public ProjectDatabaseDTO getDetail(String projectId) {
-        return ProjectInfoMapstruct.INSTANCE.toProjectDatabaseDTO(projectInfoMapper.selectById(projectId));
+    /**
+     * 校验是否能连接
+     * @param projectId
+     * @return
+     */
+    public Boolean connectCheck(String projectId) throws SQLException, ClassNotFoundException {
+        ProjectPO projectPO = projectInfoMapper.selectById(projectId);
+        try {
+            this.getConnection(ProjectInfoMapstruct.INSTANCE.toDatabaseConfig(projectPO));
+        } catch (Exception e) {
+            logger.error("数据库连接失败! 配置如下:" + projectPO.toString());
+            return false;
+        }
+        return true;
     }
 }

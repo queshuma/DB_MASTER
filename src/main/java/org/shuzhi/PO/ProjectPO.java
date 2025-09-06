@@ -73,4 +73,11 @@ public class ProjectPO {
      * 版本号
      */
     private String version;
+
+    public String toString() {
+    	return "ProjectPO [id=" + id + ", projectName=" + projectName + ", projectDescription=" + projectDescription
+    			+ ", projectType=" + projectType + ", databaseUrl=" + databaseUrl + ", databaseDriver=" + databaseDriver
+    			+ ", databaseUser=" + databaseUser + ", databasePassword=" + databasePassword + ", createTime="
+    			+ createTime + ", updateTime=" + updateTime + ", backCount=" + backCount + ", version=" + version + "]";
+    }
 }
