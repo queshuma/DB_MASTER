@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import { message } from 'ant-design-vue';
 import link from '../link/Link.js';
+import { encryptAES } from '../utils/aesUtil.js';
 
 const router = useRouter();
 const store = useStore();
@@ -25,9 +26,13 @@ const login = async () => {
 
     // 使用Link工具发送登录请求
 
+    // 对密码进行AES加密后再传输
+    const encryptedPassword = encryptAES(password.value);
+    console.log(encryptedPassword)
+    
     link("/user/login", 'GET',{}, {      
       username: username.value,
-      password: password.value}, {} )
+      password: encryptedPassword}, {} )
     .then(response => {
       console.log(response.resultCode)
       if (response.resultCode === '200') {

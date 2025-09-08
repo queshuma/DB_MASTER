@@ -91,10 +91,10 @@ const columns = [
   { 
     title: '操作', 
     key: 'action', 
-    width: 100, 
+    width: 140, 
     fixed: 'right', 
     customRender: ({ record }) => {
-      return h('div', {
+      return h('div', { 
         style: {
           display: 'flex',
           gap: '8px'
@@ -112,6 +112,12 @@ const columns = [
           onClick: () => handleDetail(record),
           icon: h(InfoCircleOutlined)
         }, '详情'),
+        h(Button, {
+          type: 'default',
+          size: 'small',
+          onClick: () => handleBackup(record),
+          icon: h(HistoryOutlined)
+        }, '备份'),
         h(Button, {
           type: 'default',
           size: 'small',
@@ -162,6 +168,19 @@ const handleDetail = async (record) => {
   } catch (error) {
     message.error('操作失败: ' + error.message);
     console.error('Operation failed:', error);
+  }
+};
+
+// 处理备份事件
+const handleBackup = async (record) => {
+  try {
+    // 打开悬浮球对话框请求，发起流式请求
+    if (floatingButtonRef.value) {
+      floatingButtonRef.value.openDialogWithMessage('备份' + record.projectName + '项目数据库结构');
+    }
+  } catch (error) {
+    message.error('操作失败: ' + error.message);
+    console.error('Backup operation failed:', error);
   }
 };
 
