@@ -22,12 +22,15 @@
         </div>
         <!-- 输入区域 -->
         <div class="input-container">
-          <input 
+          <textarea 
             v-model="inputValue" 
-            @keyup.enter="sendMessage"
-            placeholder="请输入你的问题..." 
+            @keydown.enter.prevent="handleEnterKey"
+            @keydown.ctrl.enter="sendMessage"
+            placeholder="请输入你的问题... (Enter换行，Ctrl+Enter发送)" 
             class="message-input"
-          >
+            rows="3" 
+            maxlength="500"
+          ></textarea>
           <button @click="sendMessage" class="send-button">发送</button>
         </div>
       </div>
@@ -54,6 +57,10 @@ const props = defineProps({
     default: false
   },
   initialMessage: {
+    type: String,
+    default: ''
+  },
+  defaultInputValue: {
     type: String,
     default: ''
   }
@@ -88,6 +95,15 @@ const scrollToBottom = () => {
 
 // 输入框内容
 const inputValue = ref('');
+
+// 处理Enter键事件
+const handleEnterKey = (e) => {
+  // 如果按下Ctrl键，则发送消息
+  if (e.ctrlKey) {
+    sendMessage();
+  }
+  // 否则默认行为就是换行
+};
 
 // 发送消息
 const sendMessage = async () => {
@@ -243,18 +259,26 @@ const showProjectList = (messageIndex, projects) => {
   }, 20);
 };
 
-// 监听visible变化，当对话框打开且有初始消息时自动发送
-watch(() => [props.visible, props.initialMessage], ([visible, initialMessage]) => {
-  if (visible && initialMessage.trim()) {
-    // 添加初始消息
-    messages.value.push({
-      type: 'user',
-      content: initialMessage,
-      timestamp: new Date().toLocaleTimeString()
-    });
+// 监听visible变化，当对话框打开时设置默认输入值并处理初始消息
+watch(() => [props.visible, props.initialMessage, props.defaultInputValue], ([visible, initialMessage, defaultInputValue]) => {
+  if (visible) {
+    // 设置默认输入值
+    if (defaultInputValue.trim()) {
+      inputValue.value = defaultInputValue;
+    }
     
-    // 执行流式响应
-    simulateStreamingResponse();
+    // 如果有初始消息则自动发送
+    if (initialMessage.trim()) {
+      // 添加初始消息
+      messages.value.push({
+        type: 'user',
+        content: initialMessage,
+        timestamp: new Date().toLocaleTimeString()
+      });
+      
+      // 执行流式响应
+      simulateStreamingResponse();
+    }
   }
 }, { immediate: true });
 
@@ -434,6 +458,18 @@ const handleClose = () => {
   border-radius: 4px;
   font-size: 14px;
   outline: none;
+  line-height: 1.5;
+  min-height: 75px; /* 大约3行的高度 */
+  max-height: 125px; /* 大约5行的高度 */
+  overflow-y: auto;
+  font-family: inherit;
+  resize: vertical;
+}
+
+/* 为textarea添加特殊样式 */
+.message-input:is(textarea) {
+  resize: vertical;
+  max-height: 125px;
 }
 
 .message-input:focus {

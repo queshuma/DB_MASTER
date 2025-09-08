@@ -10,6 +10,7 @@
   <SmartBotDialog
     :visible="dialogVisible"
     :initial-message="initialMessage"
+    :default-input-value="defaultInputValue"
     @update:visible="handleUpdateVisible"
     @close="handleDialogClose"
   />
@@ -24,6 +25,9 @@ const dialogVisible = ref(false);
 
 // 外部传入的初始消息
 const initialMessage = ref('');
+
+// 默认输入值
+const defaultInputValue = ref('');
 
 // 内部点击处理
 const handleClick = () => {
@@ -40,9 +44,10 @@ const handleUpdateVisible = (newValue) => {
   dialogVisible.value = newValue;
 };
 
-// 从外部打开对话框并设置初始消息
-const openDialogWithMessage = (message) => {
+// 从外部打开对话框并设置初始消息和默认输入值
+const openDialogWithMessage = (message = '', defaultInput = '') => {
   initialMessage.value = message;
+  defaultInputValue.value = defaultInput;
   dialogVisible.value = true;
 };
 
