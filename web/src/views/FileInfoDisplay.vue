@@ -171,12 +171,9 @@ const columns = [
     dataIndex: 'name',
     key: 'name',
     ellipsis: true,
-    render: (text, record) => (
-      <Space>
-        <component :is="record.type === 'image' ? FolderOpenOutlined : FileOutlined" />
-        <span>{text}</span>
-      </Space>
-    )
+    slots: {
+      customRender: 'name'
+    }
   },
   {
     title: '大小',
@@ -201,38 +198,26 @@ const columns = [
     dataIndex: 'status',
     key: 'status',
     width: 80,
-    render: (status) => (
-      <Tag color={status === 'active' ? 'green' : 'red'}>
-        {status === 'active' ? '正常' : '禁用'}
-      </Tag>
-    )
+    slots: {
+      customRender: 'status'
+    }
   },
   {
     title: '标签',
     dataIndex: 'tags',
     key: 'tags',
-    render: (tags) => (
-      <Space wrap>
-        {tags.map((tag, index) => (
-          <Tag key={index} color="blue">
-            {tag}
-          </Tag>
-        ))}
-      </Space>
-    )
+    slots: {
+      customRender: 'tags'
+    }
   },
   {
     title: '操作',
     key: 'action',
     width: 180,
     fixed: 'right',
-    render: (_, record) => (
-      <Space size="middle">
-        <Button size="small" onClick={() => previewFile(record)}>预览</Button>
-        <Button size="small" type="primary" icon={<DownloadOutlined />} onClick={() => downloadFile(record)}>下载</Button>
-        <Button size="small" danger onClick={() => deleteFile(record)}>删除</Button>
-      </Space>
-    )
+    slots: {
+      customRender: 'action'
+    }
   }
 ];
 
@@ -274,10 +259,13 @@ onMounted(() => {
             v-model:value="searchKeyword"
             placeholder="搜索文件名、路径或标签..."
             style="width: 300px; margin-right: 16px;"
-            allowClear
+            allow-clear
             @change="searchFiles"
           />
-          <Button type="default" icon={<ReloadOutlined />} @click="fetchFileList">
+          <Button type="default" @click="fetchFileList">
+            <template #icon>
+              <ReloadOutlined />
+            </template>
             刷新
           </Button>
         </div>
@@ -295,7 +283,38 @@ onMounted(() => {
         :scroll="{ x: 'max-content' }"
         pagination
         class="file-table"
-      />
+      >
+        <template #name="{ text, record }">
+          <Space>
+            <component :is="record.type === 'image' ? FolderOpenOutlined : FileOutlined" />
+            <span>{{ text }}</span>
+          </Space>
+        </template>
+        <template #status="{ text }">
+          <Tag :color="text === 'active' ? 'green' : 'red'">
+            {{ text === 'active' ? '正常' : '禁用' }}
+          </Tag>
+        </template>
+        <template #tags="{ text }">
+          <Space wrap>
+            <Tag v-for="(tag, index) in text" :key="index" color="blue">
+              {{ tag }}
+            </Tag>
+          </Space>
+        </template>
+        <template #action="{ record }">
+          <Space size="middle">
+            <Button size="small" @click="() => previewFile(record)">预览</Button>
+            <Button size="small" type="primary" @click="() => downloadFile(record)">
+              <template #icon>
+                <DownloadOutlined />
+              </template>
+              下载
+            </Button>
+            <Button size="small" danger @click="() => deleteFile(record)">删除</Button>
+          </Space>
+        </template>
+      </Table>
 
       <!-- 文件内容预览弹窗 -->
       <Modal
@@ -324,7 +343,9 @@ onMounted(() => {
       >
         <Upload.Dragger v-bind="uploadProps">
           <p class="ant-upload-drag-icon">
-            <InboxOutlined />
+            <template>
+              <InboxOutlined />
+            </template>
           </p>
           <p class="ant-upload-text">点击或拖拽文件到此处上传</p>
           <p class="ant-upload-hint">

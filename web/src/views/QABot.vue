@@ -3,7 +3,7 @@ import { ref, onMounted, nextTick, onUnmounted } from 'vue';
 import MarkdownIt from 'markdown-it';
 import { streamingRequest } from '../link/Link';
 import link from '../link/Link';
-import { MessageOutlined, SendOutlined, StopOutlined, RefreshOutlined } from '@ant-design/icons-vue';
+import { MessageOutlined, SendOutlined, StopOutlined } from '@ant-design/icons-vue';
 import { Card, Input, Button, List, Avatar, Spin, Empty, Tooltip } from 'ant-design-vue';
 import { message } from 'ant-design-vue';
 
@@ -230,11 +230,14 @@ onUnmounted(() => {
             <h3>历史对话</h3>
             <Button 
               type="text" 
-              icon={<RefreshOutlined />} 
               @click="createNewConversation"
               size="small"
               title="创建新对话"
-            />
+            >
+              <template #icon>
+                <RefreshOutlined />
+              </template>
+            </Button>
           </div>
           <div class="conversation-list">
             <div 
@@ -271,15 +274,17 @@ onUnmounted(() => {
           <div class="chat-messages" ref="messageContainer">
             <List
               :data-source="messages"
-              :renderItem="(msg) => (
+              class="message-list"
+            >
+              <template #item="{ item: msg }">
                 <List.Item class="message-item">
-                  <List.Item.Meta
-                    :avatar="
+                  <List.Item.Meta>
+                    <template #avatar>
                       <Avatar :style="{ backgroundColor: msg.isUser ? '#1890ff' : '#8c8c8c' }">
                         {{ msg.isUser ? '我' : 'AI' }}
                       </Avatar>
-                    "
-                    :description="
+                    </template>
+                    <template #description>
                       <div class="message-content-wrapper">
                         <div 
                           :class="['message-content', msg.isUser ? 'user-message' : 'bot-message']"
@@ -287,12 +292,10 @@ onUnmounted(() => {
                         />
                         <div class="message-time">{{ msg.timestamp }}</div>
                       </div>
-                    "
-                  />
+                    </template>
+                  </List.Item.Meta>
                 </List.Item>
-              )"
-              class="message-list"
-            >
+              </template>
               <template #empty>
                 <Empty description="暂无消息" />
               </template>
@@ -324,10 +327,12 @@ onUnmounted(() => {
                 v-if="isSending"
                 danger 
                 @click="cancelSend"
-                icon={<StopOutlined />}
                 size="small"
                 style="margin-right: 8px;"
               >
+                <template #icon>
+                  <StopOutlined />
+                </template>
                 取消
               </Button>
               <Button 
@@ -335,9 +340,11 @@ onUnmounted(() => {
                 @click="sendMessage"
                 :loading="isSending"
                 :disabled="!inputText.trim() || isSending"
-                icon={<SendOutlined />}
                 size="small"
               >
+                <template #icon>
+                  <SendOutlined />
+                </template>
                 {{ isSending ? '发送中' : '发送' }}
               </Button>
             </div>
