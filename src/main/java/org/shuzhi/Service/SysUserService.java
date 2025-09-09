@@ -92,7 +92,6 @@ public class SysUserService {
         sysUserInfoMapper.updateById(sysUserInfoPO);
     }
 
-
     private void insertUserCache() {
         redisTemplate.opsForSet().add(StpUtil.getLoginId().toString(), JSONObject.toJSONString(sysUserInfoMapper.selectById(StpUtil.getLoginId().toString())));
     }

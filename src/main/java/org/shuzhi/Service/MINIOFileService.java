@@ -1,5 +1,6 @@
 package org.shuzhi.Service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
 import io.minio.MinioClient;
@@ -14,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Date;
+import java.util.List;
 
 @RequiredArgsConstructor
 @Service
@@ -23,6 +25,7 @@ public class MINIOFileService {
     private final MINIOConfig minIOConfig;
 
     private final SysUserService sysUserService;
+    private final RagFileService ragFileService;
 
     public String uploadFile(String bucket, MultipartFile multipartFile) throws Exception {
         return this.uploadFileHandle(bucket, multipartFile);
@@ -42,7 +45,7 @@ public class MINIOFileService {
         String fileName = (new Date()).getTime() + multipartFile.getOriginalFilename().substring(multipartFile.getOriginalFilename().indexOf("."));
         try {
             minioClient.putObject(PutObjectArgs.builder()
-                    .bucket(minIOConfig.getBucketName())
+                    .bucket(bucket)
                     .object(fileName)
                     .stream(multipartFile.getInputStream(), multipartFile.getInputStream().available(), -1)
                     .contentType(multipartFile.getContentType()).build());
@@ -66,5 +69,18 @@ public class MINIOFileService {
             IOUtils.copy(object, response.getOutputStream());
             response.flushBuffer();
         }
+    }
+
+    /**
+     * 上传rag文件
+     * @param bucket
+     * @param file
+     * @return
+     * @throws Exception
+     */
+    public String uploadRagFile(String bucket, MultipartFile file) throws Exception {
+        String fileName = this.uploadFileHandle(bucket, file);
+        ragFileService.uploadRagFile(fileName, file.getContentType());
+        return fileName;
     }
 }

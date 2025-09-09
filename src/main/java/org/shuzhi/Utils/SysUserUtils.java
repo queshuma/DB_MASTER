@@ -1,8 +1,10 @@
 package org.shuzhi.Utils;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.shuzhi.Mapper.SysUserInfoMapper;
 import org.shuzhi.PO.SysUserInfoPO;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
@@ -16,8 +18,11 @@ public class SysUserUtils {
 
     private final SysUserInfoMapper sysUserInfoMapper;
 
-    public SysUserUtils(SysUserInfoMapper sysUserInfoMapper) {
+    private final RedisTemplate redisTemplate;
+
+    public SysUserUtils(SysUserInfoMapper sysUserInfoMapper, RedisTemplate redisTemplate) {
         this.sysUserInfoMapper = sysUserInfoMapper;
+        this.redisTemplate = redisTemplate;
     }
 
     public List<String> getUserIdList() {
@@ -48,5 +53,14 @@ public class SysUserUtils {
             userPermission.put(id, Arrays.stream(collect.get(0).getRole().split(",")).toList());
         }
         return userPermission;
+    }
+
+    public SysUserInfoPO getLoginUserInfo() {
+        SysUserInfoPO sysUserInfoPO = (SysUserInfoPO) redisTemplate.opsForSet().pop(StpUtil.getLoginId().toString());
+        if (sysUserInfoPO == null) {
+            sysUserInfoPO = sysUserInfoMapper.selectById(StpUtil.getLoginId().toString());
+            redisTemplate.opsForSet().add(StpUtil.getLoginId().toString(), sysUserInfoPO);
+        }
+        return sysUserInfoPO;
     }
 }
