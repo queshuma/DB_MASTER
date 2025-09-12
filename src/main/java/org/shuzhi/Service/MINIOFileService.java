@@ -80,7 +80,7 @@ public class MINIOFileService {
      */
     public String uploadRagFile(String bucket, MultipartFile file) throws Exception {
         String fileName = this.uploadFileHandle(bucket, file);
-        ragFileService.uploadRagFile(fileName, file.getContentType());
+        ragFileService.uploadRagFile(file.getOriginalFilename(), fileName, file.getContentType(), String.valueOf(file.getSize()));
         return fileName;
     }
 }

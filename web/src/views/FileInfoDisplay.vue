@@ -76,14 +76,34 @@ const mockFileData = [
 const fetchFileList = async () => {
   loading.value = true;
   try {
-    // 模拟API请求延迟
-    await new Promise(resolve => setTimeout(resolve, 500));
-    // 在实际项目中，这里应该调用后端API获取文件列表
-    // const response = await link('/api/files/list', 'get');
-    // fileList.value = response.data;
+    // 调用后端API获取文件列表
+    const response = await link('/file/getRagFileList', 'post', {
+      pageDTO: {
+        page: {
+          size: 10,
+          current: 1
+        },
+        size: 10
+      }
+    });
     
-    // 目前使用模拟数据
-    fileList.value = mockFileData;
+    // 处理响应数据，将接口返回的字段映射到组件所需的格式
+    if (response && response.records && Array.isArray(response.records)) {
+      fileList.value = response.records.map(file => ({
+        id: file.id,
+        name: file.fileName,
+        size: file.fileSize || '未知大小',
+        type: file.fileType || 'document',
+        path: file.filePath || '',
+        // 接口没有返回以下字段，使用默认值
+        lastModified: new Date().toLocaleString('zh-CN'),
+        status: 'active',
+        tags: []
+      }));
+    } else {
+      // 接口返回数据格式不正确时，使用模拟数据
+      fileList.value = mockFileData;
+    }
   } catch (error) {
     console.error('获取文件列表失败:', error);
     message.error('获取文件列表失败，请稍后重试');
@@ -221,24 +241,34 @@ const columns = [
   }
 ];
 
-// 上传配置
+// 使用封装的link方法进行文件上传
 const uploadProps = {
   name: 'file',
   multiple: false,
-  action: '/api/files/upload', // 实际项目中应使用真实的上传接口
-  headers: {
-    authorization: 'Bearer token',
+  customRequest: async (options) => {
+    const { file, onSuccess, onError } = options;
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      // 使用封装的link方法上传文件
+      const response = await link('/file/uploadRagFile', 'post', formData, {}, {}, true, 'text');
+      
+      // 上传成功处理
+      onSuccess(response);
+      message.success(`${file.name} 文件上传成功`);
+      showUploadModal.value = false;
+      fetchFileList();
+    } catch (error) {
+      // 上传失败处理
+      onError(error);
+      message.error(`${file.name} 文件上传失败`);
+      console.error('文件上传失败:', error);
+    }
   },
   onChange(info) {
     if (info.file.status !== 'uploading') {
       console.log(info.file, info.fileList);
-    }
-    if (info.file.status === 'done') {
-      message.success(`${info.file.name} 文件上传成功`);
-      showUploadModal.value = false;
-      fetchFileList();
-    } else if (info.file.status === 'error') {
-      message.error(`${info.file.name} 文件上传失败`);
     }
   },
 };
@@ -251,7 +281,7 @@ onMounted(() => {
 
 <template>
   <div class="file-info-display">
-    <Card title="文件信息显示" class="card-container">
+    <Card title="RAG文件仓库" class="card-container">
       <!-- 工具栏 -->
       <div class="toolbar">
         <div class="search-container">

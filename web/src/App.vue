@@ -25,7 +25,7 @@ const menuItems = [
   { key: 'database', icon: DatabaseOutlined, label: '项目列表', path: '/database-list' },
   { key: 'settings', icon: SettingOutlined, label: '个人设置', path: '/personal-settings' },
   { key: 'chatbot', icon: MessageOutlined, label: '聊天机器人', path: '/chatbot' },
-  { key: 'fileInfo', icon: FileOutlined, label: '文件信息显示', path: '/file-info' },
+  { key: 'fileInfo', icon: FileOutlined, label: 'RAG文件仓库', path: '/file-info' },
   { key: 'qaBot', icon: MessageOutlined, label: '问答机器人', path: '/qa-bot' },
   { key: 'records', icon: HistoryOutlined, label: '操作记录', path: '/operation-records' }
 ];

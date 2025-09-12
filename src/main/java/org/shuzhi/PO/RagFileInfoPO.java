@@ -26,6 +26,11 @@ public class RagFileInfoPO implements Serializable {
     private String id;
 
     /**
+     * 文件初始名称
+     */
+    private String fileInitialName;
+
+    /**
      * 文件名称
      */
     private String fileName;

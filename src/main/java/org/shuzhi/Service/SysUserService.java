@@ -10,6 +10,8 @@ import org.shuzhi.Dto.UserRegisterDTO;
 import org.shuzhi.Mapper.SysUserInfoMapper;
 import org.shuzhi.Mapstruct.SysUserInfoMapstruct;
 import org.shuzhi.PO.SysUserInfoPO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -23,6 +25,8 @@ public class SysUserService {
     private final SysUserInfoMapper sysUserInfoMapper;
 
     private final RedisTemplate redisTemplate;
+
+    Logger logger = LoggerFactory.getLogger(SysUserService.class);
 
     public SysUserService(SysUserInfoMapper sysUserInfoMapper, RedisTemplate redisTemplate) {
         this.sysUserInfoMapper = sysUserInfoMapper;
@@ -94,5 +98,6 @@ public class SysUserService {
 
     private void insertUserCache() {
         redisTemplate.opsForSet().add(StpUtil.getLoginId().toString(), JSONObject.toJSONString(sysUserInfoMapper.selectById(StpUtil.getLoginId().toString())));
+
     }
 }
