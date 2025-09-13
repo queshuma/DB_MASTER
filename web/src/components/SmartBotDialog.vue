@@ -15,11 +15,25 @@
               </span>
               <div class="message-content">
                 <div v-html="md.render(msg.content)"></div>
-                <span v-if="msg.isStreaming" class="streaming-indicator">...</span>
+                <!-- <span v-if="msg.isStreaming" class="streaming-indicator">...</span> -->
               </div>
             </div>
           </div>
         </div>
+        
+        <!-- 快速操作按钮区域 -->
+        <div class="quick-actions">
+          <div class="action-buttons">
+            <button class="quick-btn" @click="handleQuickAction('queryDetail')">查询详情</button>
+            <button class="quick-btn" @click="handleQuickAction('dbConfig')">数据库配置</button>
+            <button class="quick-btn" @click="handleQuickAction('modifyConfig')">修改配置</button>
+            <button class="quick-btn" @click="handleQuickAction('backup')">备份</button>
+            <button class="quick-btn" @click="handleQuickAction('backupRecords')">备份记录</button>
+            <button class="quick-btn" @click="handleQuickAction('tableCompare')">数据表对比</button>
+            <button class="quick-btn" @click="handleQuickAction('fieldCompare')">数据字段对比</button>
+          </div>
+        </div>
+        
         <!-- 输入区域 -->
         <div class="input-container">
           <textarea 
@@ -42,6 +56,7 @@
 import { ref, watch, nextTick } from 'vue';
 import link, { streamingRequest } from '../link/Link.js'; // 引入API调用工具
 import MarkdownIt from 'markdown-it';
+import quickActionConfig from './quickActionConfig.json'; // 引入快速操作配置文件
 
 // 创建Markdown实例并配置以更好地处理空行
 const md = new MarkdownIt({
@@ -65,6 +80,21 @@ const props = defineProps({
     default: ''
   }
 });
+
+// 快速操作按钮点击处理函数
+const handleQuickAction = (actionType) => {
+  // 根据按钮类型获取相应的问题描述
+  const actionDescription = quickActionConfig[actionType];
+  
+  if (actionDescription) {
+    // 构建问题字符串
+    const question = `请${actionDescription}`;
+    
+    // 设置输入值并发送消息
+    inputValue.value = question;
+    sendMessage();
+  }
+};
 
 // 定义emit
 const emit = defineEmits(['update:visible', 'close']);
@@ -301,8 +331,8 @@ const handleClose = () => {
 
 .dialog-container {
   position: fixed;
-  right: calc(30px + 60px + 10px); /* 悬浮按钮右侧30px + 按钮宽度60px + 间距10px */
-  bottom: calc(100vh / 3); /* 与悬浮按钮底部对齐，位于页面的2/3位置 */
+  right: 20px; /* 与悬浮球右侧对齐 */
+  bottom: calc(10vh / 3 + 70px); /* 悬浮球底部位置 + 按钮高度 + 间距10px = 悬浮球上方 */
   width: 600px;
   background-color: white;
   border-radius: 8px;
@@ -376,21 +406,23 @@ const handleClose = () => {
   padding: 10px 14px;
   border-radius: 18px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   position: relative;
 }
 
 .user-message {
   background-color: #e6f7ff;
+  margin-left: auto;
+  border-bottom-right-radius: 5px;
 }
 
 .bot-message {
   background-color: #fff;
   border: 1px solid #e8e8e8;
+  border-bottom-left-radius: 5px;
 }
 
 .sender-avatar {
-  margin-right: 8px;
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -400,6 +432,18 @@ const handleClose = () => {
   font-size: 12px;
   color: #fff;
   flex-shrink: 0;
+  position: absolute;
+  top: -12px;
+}
+
+.user-avatar {
+  background-color: #1890ff;
+  right: -12px;
+}
+
+.bot-avatar {
+  background-color: #8c8c8c;
+  left: -12px;
 }
 
 .user-avatar {
@@ -443,13 +487,41 @@ const handleClose = () => {
   50% { opacity: 1; }
 }
 
-.input-container {
-  display: flex;
-  padding: 16px;
-  background-color: #fff;
-  border-top: 1px solid #e8e8e8;
-  gap: 8px;
-}
+.quick-actions {
+    padding: 12px 16px;
+    background-color: #fafafa;
+    border-top: 1px solid #e8e8e8;
+    border-bottom: 1px solid #e8e8e8;
+  }
+  
+  .action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .quick-btn {
+    padding: 6px 12px;
+    background-color: #fff;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    min-width: 70px;
+    text-align: center;
+  }
+  
+  .quick-btn:hover {
+    border-color: #1890ff;
+    color: #1890ff;
+  }
+  
+  .input-container {
+    display: flex;
+    padding: 16px;
+    background-color: #fff;
+    gap: 8px;
+  }
 
 .message-input {
   flex: 1;

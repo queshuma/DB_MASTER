@@ -1,0 +1,9 @@
+{
+  "queryDetail": "查询该项目的详情",
+  "dbConfig": "查询该项目的数据库配置",
+  "modifyConfig": "修改该项目的数据库配置",
+  "backup": "备份该项目的数据库",
+  "backupRecords": "查询该项目的数据库备份记录",
+  "tableCompare": "对比该项目的数据表",
+  "fieldCompare": "对比该项目的数据字段"
+}

@@ -109,21 +109,9 @@ const columns = [
         h(Button, {
           type: 'primary',
           size: 'small',
-          onClick: () => handleDetail(record),
+          onClick: () => handleAddToDialog(record),
           icon: h(InfoCircleOutlined)
-        }, '详情'),
-        h(Button, {
-          type: 'default',
-          size: 'small',
-          onClick: () => handleBackup(record),
-          icon: h(HistoryOutlined)
-        }, '备份'),
-        h(Button, {
-          type: 'default',
-          size: 'small',
-          onClick: () => handleBackupRecords(record),
-          icon: h(HistoryOutlined)
-        }, '备份记录')
+        }, '对话')
       ]);
     }
   }
@@ -196,6 +184,19 @@ const handleBackupRecords = async (record) => {
   } catch (error) {
     message.error('操作失败: ' + error.message);
     console.error('Backup records operation failed:', error);
+  }
+};
+
+// 处理添加到对话事件
+const handleAddToDialog = async (record) => {
+  try {
+    // 打开悬浮球对话框请求，设置项目信息
+    if (floatingButtonRef.value) {
+      floatingButtonRef.value.openDialogWithMessage(`当前项目编号为：${record.id}，名称为${record.projectName}, 我将处理这个项目`, '');
+    }
+  } catch (error) {
+    message.error('操作失败: ' + error.message);
+    console.error('Add to dialog operation failed:', error);
   }
 };
 </script>
