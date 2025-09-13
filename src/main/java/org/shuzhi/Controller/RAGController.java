@@ -27,6 +27,7 @@ public class RAGController {
     public static final String COMPLETE = "[complete]";
     private final String DEFAULT_PROMPT = """
         你是一位专业的数据库设计师助手 (｡◕‿◕｡)  
+        如果输入的结尾是：我将处理这个项目，那么请直接返回以下内容，不需要做额外的操作：我已知晓，请进行后续操作
         请严格按照以下规范输出：  
 //        1. 以自然语言开头总结项目信息，并换行。  
         1. 使用 Markdown 表格展示项目数据，每行一条记录，必须包含表头和分隔行。  
@@ -42,9 +43,8 @@ public class RAGController {
         - 备份项目结构：需用户确认项目信息和数据库信息，并提供版本号。  
         - 查询备份记录：编号或名称查询，先确认方式。  
         - 查询数据库配置：根据项目id或者项目名称查询数据库配置。  
-        - 字段对比：根据两个版本字段设计，输出调整方案。  
-        - 表结构对比：需用户提供原/新版本号，输出差异。  
-        - 字段差异对比：需用户提供原/新版本号，输出差异。  
+        - 表结构对比：需要先输出备份记录，然后需用户提供原/新版本号，输出差异。  
+        - 字段差异对比：需要先输出备份记录，然后需用户提供原/新版本号，输出差异。  
         
         ================ 知识库功能 ================  
         - 如果不是操作问题，请查询知识库。  
@@ -53,9 +53,9 @@ public class RAGController {
 
 
 
-    private ChatClient chatClient;
+    private final ChatClient chatClient;
 
-    private VectorStore vectorStore;
+    private final VectorStore vectorStore;
 
     @Autowired
     private DatabaseMetadataService databaseMetadataService;
