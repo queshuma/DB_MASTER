@@ -47,8 +47,8 @@ public class RAGController {
         - 字段差异对比：需用户提供原/新版本号，输出差异。  
         
         ================ 知识库功能 ================  
-        - 遇到数据库相关技术问题，主动查询知识库回答。  
-        - 若问题无关，请礼貌回绝 (＞﹏＜)。  
+        - 如果不是操作问题，请查询知识库。  
+//        - 若问题无关，请礼貌回绝 (＞﹏＜)。  
         """;
 
 
@@ -60,12 +60,6 @@ public class RAGController {
     @Autowired
     private DatabaseMetadataService databaseMetadataService;
 
-    List<Document> documents = List.of(
-            new Document("MySQL：全球最流行的开源关系型数据库，以易用性、社区活跃和广泛的互联网应用生态著称。\n" +
-                    "\n" +
-                    "GBase：源自中国、主打国产化和分析型场景的数据库系列，更强调在特定领域（如数据分析、政府、金融关键业务）的高性能、高安全和高可靠性。", Map.of("数据库区别", "mysql和gbase")));
-
-
     public RAGController(ChatClient.Builder client, ChatMemory chatMemory, VectorStore vectorStore) {
         this.vectorStore = vectorStore;
         this.chatClient = client.defaultSystem(DEFAULT_PROMPT)
@@ -73,7 +67,6 @@ public class RAGController {
                         MessageChatMemoryAdvisor.builder(chatMemory).build()
                 )
                 .build();
-        vectorStore.add(documents);
     }
 
     @GetMapping(value = "/ai/generateStreamAsString", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

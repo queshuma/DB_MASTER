@@ -37,7 +37,12 @@ service.interceptors.request.use(
 // 响应拦截器
 service.interceptors.response.use(
     response => {
-        if(response.data.code === 401) {
+        // 对于blob类型的响应，直接返回完整的response对象
+        if (response.request.responseType === 'blob') {
+            return response;
+        }
+        
+        if(response.data && response.data.code === 401) {
             // 清除本地存储的token
             localStorage.removeItem('token');
             // 重定向到登录页面
