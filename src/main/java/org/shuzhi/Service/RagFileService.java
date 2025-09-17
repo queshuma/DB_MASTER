@@ -3,8 +3,9 @@ package org.shuzhi.Service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import jakarta.annotation.Resource;
+import com.hankcs.hanlp.HanLP;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.shuzhi.Config.MINIOConfig;
@@ -17,16 +18,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.InputStreamResource;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.IOException;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.List;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.Serializable;
+import java.util.*;
 
 @RequiredArgsConstructor
 @Service
@@ -57,13 +55,57 @@ public class RagFileService {
         ragFileInfoMapper.insert(ragFileInfoPO);
     }
 
+    @Async
     public void syncRagFile(RagFile ragFile) throws Exception {
-        try (PDDocument pdf = PDDocument.load(minIOUtils.getFileStream("db-master-rag-bucket", ragFile).getInputStream())){
-            PDFTextStripper stripper = new PDFTextStripper();
-            String text = stripper.getText(pdf);
 
-            List<Document> documents = List.of(new Document(text));
-            vectorStore.add(documents);
+        List<String> paragraphContext = new ArrayList<>();
+        try (PDDocument pdf = PDDocument.load(minIOUtils.getFileStream("db-master-rag-bucket", ragFile).getInputStream());
+             ){
+//            PDFTextStripper stripper = new PDFTextStripper();
+//            stripper.setSortByPosition(true); // 按位置读取，避免顺序乱
+//            String text = stripper.getText(pdf);
+//            SentenceDetectorME sentenceDetector = new SentenceDetectorME(new SentenceModel(modelIn));
+
+            Map<String, Object> contextMap = new HashMap<>();
+            contextMap.put("id", ragFile.id);
+            contextMap.put("paragraphIndex", 0);
+
+            PDFTextStripper stripper = new PDFTextStripper();
+
+            // 启用位置排序（有助于还原段落）
+            stripper.setSortByPosition(true);
+
+            // 保留换行
+            stripper.setAddMoreFormatting(true);
+
+            // 设置换行符
+            stripper.setLineSeparator("\n");
+            stripper.setParagraphEnd("\n\n");
+            String context = stripper.getText(pdf);
+            // 按连续 2 个或更多换行符分割
+            String[] paragraphs = context.split("(\\r?\\n){2,}");
+
+            StringBuffer documentContext = new StringBuffer();
+            List<Document> documentList = new ArrayList<>();
+            Integer index = 0;
+            for (String para : paragraphs) {
+                String clean = para.trim(); // 去掉首尾空白
+                if (clean.endsWith("。") || clean.endsWith(".")) {
+                    documentContext.append(clean);
+                    Document document = new Document(documentContext.toString(), contextMap);
+                    documentContext.delete(0, documentContext.length());
+                    documentList.add(document);
+                    logger.info("段落 " + index + " 添加成功");
+                    index = index + 1;
+                    contextMap.put("paragraphIndex", index);
+                } else {
+                    if (StringUtils.isNotBlank(clean)) {
+                        documentContext.append(clean);
+                    }
+                }
+            }
+            vectorStore.add(documentList);
+            System.out.println("切分完毕，共 " + documentList.size() + " 个句子");
             RagFileInfoPO ragFileInfoPO = ragFileInfoMapper.selectById(ragFile.id);
             ragFileInfoPO.setSync(true);
             ragFileInfoPO.setSyncDate(new Date());
