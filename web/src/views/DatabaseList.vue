@@ -23,7 +23,7 @@ const getProjectList = async () => {
   try {
     const response = await link('/project/getList', 'post', {
       page: currentPage.value,
-      pageSize: pageSize.value,
+      size: pageSize.value,
       name: searchKeyword.value
     });
     projectData.value = response.records;
@@ -45,9 +45,9 @@ watch(() => route.fullPath, () => {
 });
 
 // 处理分页变化
-const handlePageChange = (page, pageSize) => {
+const handlePageChange = (page, newPageSize) => {
   currentPage.value = page;
-  pageSize.value = pageSize;
+  pageSize.value = newPageSize;
   getProjectList();
 };
 
@@ -91,10 +91,10 @@ const columns = [
   { 
     title: '操作', 
     key: 'action', 
-    width: 100, 
+    width: 140, 
     fixed: 'right', 
     customRender: ({ record }) => {
-      return h('div', {
+      return h('div', { 
         style: {
           display: 'flex',
           gap: '8px'
@@ -109,15 +109,9 @@ const columns = [
         h(Button, {
           type: 'primary',
           size: 'small',
-          onClick: () => handleDetail(record),
+          onClick: () => handleAddToDialog(record),
           icon: h(InfoCircleOutlined)
-        }, '详情'),
-        h(Button, {
-          type: 'default',
-          size: 'small',
-          onClick: () => handleBackupRecords(record),
-          icon: h(HistoryOutlined)
-        }, '备份记录')
+        }, '对话')
       ]);
     }
   }
@@ -125,8 +119,10 @@ const columns = [
 
 // 处理添加事件
 const handleAdd = () => {
-  message.info('添加新项目');
-  // 这里可以添加路由跳转或弹窗添加逻辑
+  // 打开对话框并设置默认输入值为'abcd'
+  if (floatingButtonRef.value) {
+    floatingButtonRef.value.openDialogWithMessage('', '项目名称：\n项目描述： \n项目类型：');
+  }
 };
 
 // 为FloatingButton组件创建引用
@@ -155,9 +151,9 @@ const handlePing = async (record) => {
 // 处理详情事件
 const handleDetail = async (record) => {
   try {
-    // 打开悬浮球对话框请求
+    // 打开悬浮球对话框请求，设置空的默认输入值
     if (floatingButtonRef.value) {
-      floatingButtonRef.value.openDialogWithMessage('查询项目id为' + record.id + '项目详情');
+      floatingButtonRef.value.openDialogWithMessage('查询项目id为' + record.id + '项目详情', '');
     }
   } catch (error) {
     message.error('操作失败: ' + error.message);
@@ -165,16 +161,42 @@ const handleDetail = async (record) => {
   }
 };
 
+// 处理备份事件
+const handleBackup = async (record) => {
+  try {
+    // 打开悬浮球对话框请求，发起流式请求
+    if (floatingButtonRef.value) {
+      floatingButtonRef.value.openDialogWithMessage('备份' + record.projectName + '项目数据库结构');
+    }
+  } catch (error) {
+    message.error('操作失败: ' + error.message);
+    console.error('Backup operation failed:', error);
+  }
+};
+
 // 处理备份记录事件
 const handleBackupRecords = async (record) => {
   try {
-    // 打开悬浮球对话框请求
+    // 打开悬浮球对话框请求，设置空的默认输入值
     if (floatingButtonRef.value) {
-      floatingButtonRef.value.openDialogWithMessage('查询项目id为' + record.id + '的备份记录');
+      floatingButtonRef.value.openDialogWithMessage('查询项目id为' + record.id + '的备份记录', '');
     }
   } catch (error) {
     message.error('操作失败: ' + error.message);
     console.error('Backup records operation failed:', error);
+  }
+};
+
+// 处理添加到对话事件
+const handleAddToDialog = async (record) => {
+  try {
+    // 打开悬浮球对话框请求，设置项目信息
+    if (floatingButtonRef.value) {
+      floatingButtonRef.value.openDialogWithMessage(`当前项目编号为：${record.id}，名称为${record.projectName}, 我将处理这个项目`, '');
+    }
+  } catch (error) {
+    message.error('操作失败: ' + error.message);
+    console.error('Add to dialog operation failed:', error);
   }
 };
 </script>
@@ -215,6 +237,7 @@ const handleBackupRecords = async (record) => {
         :page-size="pageSize"
         :total="totalCount"
         @change="handlePageChange"
+        @showSizeChange="handlePageChange"
         showSizeChanger
         :pageSizeOptions="['5', '10', '20', '50']"
       />

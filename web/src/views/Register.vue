@@ -4,6 +4,7 @@ import { UserOutlined, PhoneOutlined, LockOutlined, MailOutlined } from '@ant-de
 import { useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
 import link from '../link/Link.js';
+import { encryptAES } from '../utils/aesUtil.js';
 
 const router = useRouter();
 const formState = reactive({
@@ -44,10 +45,13 @@ const handleSubmit = async () => {
 
   try {
 
+    // 对密码进行AES加密
+    const encryptedPassword = encryptAES(formState.password);
+    
     // 使用Link工具发送注册请求
     await link('/user/register', 'POST', {
       username: formState.username,
-      password: formState.password,
+      password: encryptedPassword,
       telephone: formState.telephone,
       email: formState.email
     });

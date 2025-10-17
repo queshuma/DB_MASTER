@@ -73,7 +73,7 @@ const sendMessage = async () => {
   });
 
   try {
-    console.log('发送流式请求到: /api/database/ai/generateStreamAsString');
+    console.log('发送流式请求到: /api/chat/ai/generateStreamAsString');
     
     const botMessage = messages.value.find(m => m.id === botMsgId);
     streamingRequest(`/api/database/ai/generateStreamAsString?message=${encodeURIComponent(userInput)}`)

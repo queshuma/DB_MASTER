@@ -6,6 +6,9 @@ import OperationRecords from '../views/OperationRecords.vue';
 import Login from '../views/Login.vue';
 import Register from '../views/Register.vue';
 import EmailLogin from '../views/EmailLogin.vue';
+import FileInfoDisplay from '../views/FileInfoDisplay.vue';
+import QABot from '../views/QABot.vue';
+import ManualTokenize from '../views/ManualTokenize.vue';
 
 import HomeView from '@/views/HomeView.vue'
 
@@ -21,7 +24,10 @@ const routes = [
   { path: '/chatbot', name: 'Chatbot', component: Chatbot },
   { path: '/database-list', name: 'DatabaseList', component: DatabaseList },
   { path: '/personal-settings', name: 'PersonalSettings', component: PersonalSettings },
-  { path: '/operation-records', name: 'OperationRecords', component: OperationRecords }
+  { path: '/operation-records', name: 'OperationRecords', component: OperationRecords },
+  { path: '/file-info', name: 'FileInfoDisplay', component: FileInfoDisplay },
+  { path: '/qa-bot', name: 'QABot', component: QABot },
+  { path: '/manual-tokenize', name: 'ManualTokenize', component: ManualTokenize }
 ];
 
 const router = createRouter({

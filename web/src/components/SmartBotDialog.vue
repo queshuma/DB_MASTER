@@ -15,19 +15,36 @@
               </span>
               <div class="message-content">
                 <div v-html="md.render(msg.content)"></div>
-                <span v-if="msg.isStreaming" class="streaming-indicator">...</span>
+                <!-- <span v-if="msg.isStreaming" class="streaming-indicator">...</span> -->
               </div>
             </div>
           </div>
         </div>
+        
+        <!-- 快速操作按钮区域 -->
+        <div class="quick-actions">
+          <div class="action-buttons">
+            <button class="quick-btn" @click="handleQuickAction('queryDetail')">查询详情</button>
+            <button class="quick-btn" @click="handleQuickAction('dbConfig')">数据库配置</button>
+            <button class="quick-btn" @click="handleQuickAction('modifyConfig')">修改配置</button>
+            <button class="quick-btn" @click="handleQuickAction('backup')">备份</button>
+            <button class="quick-btn" @click="handleQuickAction('backupRecords')">备份记录</button>
+            <button class="quick-btn" @click="handleQuickAction('tableCompare')">数据表对比</button>
+            <button class="quick-btn" @click="handleQuickAction('fieldCompare')">数据字段对比</button>
+          </div>
+        </div>
+        
         <!-- 输入区域 -->
         <div class="input-container">
-          <input 
+          <textarea 
             v-model="inputValue" 
-            @keyup.enter="sendMessage"
-            placeholder="请输入你的问题..." 
+            @keydown.enter.prevent="handleEnterKey"
+            @keydown.ctrl.enter="sendMessage"
+            placeholder="请输入你的问题... (Enter换行，Ctrl+Enter发送)" 
             class="message-input"
-          >
+            rows="3" 
+            maxlength="500"
+          ></textarea>
           <button @click="sendMessage" class="send-button">发送</button>
         </div>
       </div>
@@ -39,6 +56,7 @@
 import { ref, watch, nextTick } from 'vue';
 import link, { streamingRequest } from '../link/Link.js'; // 引入API调用工具
 import MarkdownIt from 'markdown-it';
+import quickActionConfig from './quickActionConfig.json'; // 引入快速操作配置文件
 
 // 创建Markdown实例并配置以更好地处理空行
 const md = new MarkdownIt({
@@ -56,8 +74,27 @@ const props = defineProps({
   initialMessage: {
     type: String,
     default: ''
+  },
+  defaultInputValue: {
+    type: String,
+    default: ''
   }
 });
+
+// 快速操作按钮点击处理函数
+const handleQuickAction = (actionType) => {
+  // 根据按钮类型获取相应的问题描述
+  const actionDescription = quickActionConfig[actionType];
+  
+  if (actionDescription) {
+    // 构建问题字符串
+    const question = `请${actionDescription}`;
+    
+    // 设置输入值并发送消息
+    inputValue.value = question;
+    sendMessage();
+  }
+};
 
 // 定义emit
 const emit = defineEmits(['update:visible', 'close']);
@@ -88,6 +125,15 @@ const scrollToBottom = () => {
 
 // 输入框内容
 const inputValue = ref('');
+
+// 处理Enter键事件
+const handleEnterKey = (e) => {
+  // 如果按下Ctrl键，则发送消息
+  if (e.ctrlKey) {
+    sendMessage();
+  }
+  // 否则默认行为就是换行
+};
 
 // 发送消息
 const sendMessage = async () => {
@@ -243,18 +289,26 @@ const showProjectList = (messageIndex, projects) => {
   }, 20);
 };
 
-// 监听visible变化，当对话框打开且有初始消息时自动发送
-watch(() => [props.visible, props.initialMessage], ([visible, initialMessage]) => {
-  if (visible && initialMessage.trim()) {
-    // 添加初始消息
-    messages.value.push({
-      type: 'user',
-      content: initialMessage,
-      timestamp: new Date().toLocaleTimeString()
-    });
+// 监听visible变化，当对话框打开时设置默认输入值并处理初始消息
+watch(() => [props.visible, props.initialMessage, props.defaultInputValue], ([visible, initialMessage, defaultInputValue]) => {
+  if (visible) {
+    // 设置默认输入值
+    if (defaultInputValue.trim()) {
+      inputValue.value = defaultInputValue;
+    }
     
-    // 执行流式响应
-    simulateStreamingResponse();
+    // 如果有初始消息则自动发送
+    if (initialMessage.trim()) {
+      // 添加初始消息
+      messages.value.push({
+        type: 'user',
+        content: initialMessage,
+        timestamp: new Date().toLocaleTimeString()
+      });
+      
+      // 执行流式响应
+      simulateStreamingResponse();
+    }
   }
 }, { immediate: true });
 
@@ -277,8 +331,8 @@ const handleClose = () => {
 
 .dialog-container {
   position: fixed;
-  right: calc(30px + 60px + 10px); /* 悬浮按钮右侧30px + 按钮宽度60px + 间距10px */
-  bottom: calc(100vh / 3); /* 与悬浮按钮底部对齐，位于页面的2/3位置 */
+  right: 20px; /* 与悬浮球右侧对齐 */
+  bottom: calc(10vh / 3 + 70px); /* 悬浮球底部位置 + 按钮高度 + 间距10px = 悬浮球上方 */
   width: 600px;
   background-color: white;
   border-radius: 8px;
@@ -352,21 +406,23 @@ const handleClose = () => {
   padding: 10px 14px;
   border-radius: 18px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   position: relative;
 }
 
 .user-message {
   background-color: #e6f7ff;
+  margin-left: auto;
+  border-bottom-right-radius: 5px;
 }
 
 .bot-message {
   background-color: #fff;
   border: 1px solid #e8e8e8;
+  border-bottom-left-radius: 5px;
 }
 
 .sender-avatar {
-  margin-right: 8px;
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -376,6 +432,18 @@ const handleClose = () => {
   font-size: 12px;
   color: #fff;
   flex-shrink: 0;
+  position: absolute;
+  top: -12px;
+}
+
+.user-avatar {
+  background-color: #1890ff;
+  right: -12px;
+}
+
+.bot-avatar {
+  background-color: #8c8c8c;
+  left: -12px;
 }
 
 .user-avatar {
@@ -419,13 +487,41 @@ const handleClose = () => {
   50% { opacity: 1; }
 }
 
-.input-container {
-  display: flex;
-  padding: 16px;
-  background-color: #fff;
-  border-top: 1px solid #e8e8e8;
-  gap: 8px;
-}
+.quick-actions {
+    padding: 12px 16px;
+    background-color: #fafafa;
+    border-top: 1px solid #e8e8e8;
+    border-bottom: 1px solid #e8e8e8;
+  }
+  
+  .action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .quick-btn {
+    padding: 6px 12px;
+    background-color: #fff;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    min-width: 70px;
+    text-align: center;
+  }
+  
+  .quick-btn:hover {
+    border-color: #1890ff;
+    color: #1890ff;
+  }
+  
+  .input-container {
+    display: flex;
+    padding: 16px;
+    background-color: #fff;
+    gap: 8px;
+  }
 
 .message-input {
   flex: 1;
@@ -434,6 +530,18 @@ const handleClose = () => {
   border-radius: 4px;
   font-size: 14px;
   outline: none;
+  line-height: 1.5;
+  min-height: 75px; /* 大约3行的高度 */
+  max-height: 125px; /* 大约5行的高度 */
+  overflow-y: auto;
+  font-family: inherit;
+  resize: vertical;
+}
+
+/* 为textarea添加特殊样式 */
+.message-input:is(textarea) {
+  resize: vertical;
+  max-height: 125px;
 }
 
 .message-input:focus {

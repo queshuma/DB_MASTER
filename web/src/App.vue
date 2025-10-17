@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { Layout, Menu, MenuItem, Dropdown } from 'ant-design-vue';
-import { DatabaseOutlined, SettingOutlined, MessageOutlined, HistoryOutlined, MenuUnfoldOutlined, MenuFoldOutlined } from '@ant-design/icons-vue';
+import { Layout, Menu, MenuItem, Dropdown, Modal } from 'ant-design-vue';
+import { DatabaseOutlined, SettingOutlined, MessageOutlined, HistoryOutlined, MenuUnfoldOutlined, MenuFoldOutlined, FileOutlined } from '@ant-design/icons-vue';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import UserMenu from './components/UserMenu.vue';
@@ -25,6 +25,8 @@ const menuItems = [
   { key: 'database', icon: DatabaseOutlined, label: '项目列表', path: '/database-list' },
   { key: 'settings', icon: SettingOutlined, label: '个人设置', path: '/personal-settings' },
   { key: 'chatbot', icon: MessageOutlined, label: '聊天机器人', path: '/chatbot' },
+  { key: 'fileInfo', icon: FileOutlined, label: 'RAG文件仓库', path: '/file-info' },
+  { key: 'qaBot', icon: MessageOutlined, label: '问答机器人', path: '/qa-bot' },
   { key: 'records', icon: HistoryOutlined, label: '操作记录', path: '/operation-records' }
 ];
 
@@ -38,8 +40,20 @@ const handleMenuSelect = (e) => {
   const key = e.key;
   const selectedItem = menuItems.find(item => item.key === key);
   if (selectedItem) {
-    router.push(selectedItem.path);
-    selectedKeys.value = [key];
+    // 当跳转到项目列表时显示提示框
+    if (key === 'database') {
+      Modal.info({
+        title: '提示信息',
+        content: '当前项目为开发版本，知识库聊天、知识库文件系统待完善，新版本会调整项目列表中机器人聊天的唤醒方式',
+        onOk() {
+          router.push(selectedItem.path);
+          selectedKeys.value = [key];
+        }
+      });
+    } else {
+      router.push(selectedItem.path);
+      selectedKeys.value = [key];
+    }
   }
 };
 </script>

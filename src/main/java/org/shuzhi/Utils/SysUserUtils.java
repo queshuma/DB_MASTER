@@ -1,8 +1,12 @@
 package org.shuzhi.Utils;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.shuzhi.Mapper.SysUserInfoMapper;
 import org.shuzhi.PO.SysUserInfoPO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
@@ -16,8 +20,13 @@ public class SysUserUtils {
 
     private final SysUserInfoMapper sysUserInfoMapper;
 
-    public SysUserUtils(SysUserInfoMapper sysUserInfoMapper) {
+    private final RedisTemplate redisTemplate;
+
+    Logger logger = LoggerFactory.getLogger(SysUserUtils.class);
+
+    public SysUserUtils(SysUserInfoMapper sysUserInfoMapper, RedisTemplate redisTemplate) {
         this.sysUserInfoMapper = sysUserInfoMapper;
+        this.redisTemplate = redisTemplate;
     }
 
     public List<String> getUserIdList() {
@@ -48,5 +57,19 @@ public class SysUserUtils {
             userPermission.put(id, Arrays.stream(collect.get(0).getRole().split(",")).toList());
         }
         return userPermission;
+    }
+
+    public SysUserInfoPO getLoginUserInfo() {
+        System.out.println(redisTemplate.opsForSet().pop(StpUtil.getLoginId().toString()));
+        SysUserInfoPO sysUserInfoPO = (SysUserInfoPO) redisTemplate.opsForSet().pop(StpUtil.getLoginId().toString());
+        if (sysUserInfoPO == null) {
+            sysUserInfoPO = sysUserInfoMapper.selectById(StpUtil.getLoginId().toString());
+            try{
+                redisTemplate.opsForSet().add(StpUtil.getLoginId().toString(), sysUserInfoPO);
+            } catch (Exception e) {
+                logger.error("redis插入用户信息异常", e);
+            }
+        }
+        return sysUserInfoPO;
     }
 }
