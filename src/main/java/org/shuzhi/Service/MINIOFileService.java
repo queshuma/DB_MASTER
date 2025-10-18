@@ -1,10 +1,8 @@
 package org.shuzhi.Service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import io.minio.GetObjectArgs;
-import io.minio.GetObjectResponse;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
+import io.minio.*;
+import io.minio.http.Method;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.compress.utils.IOUtils;
@@ -86,5 +84,16 @@ public class MINIOFileService {
         String fileName = this.uploadFileHandle(bucket, file);
         ragFileService.uploadRagFile(file.getOriginalFilename(), fileName, file.getContentType(), String.valueOf(file.getSize()));
         return fileName;
+    }
+
+    public String getPreviewUrl(String bucketName, String objectName) throws Exception {
+        return minioClient.getPresignedObjectUrl(
+                GetPresignedObjectUrlArgs.builder()
+                        .method(Method.GET)
+                        .bucket(bucketName)
+                        .object(objectName)
+                        .expiry(60 * 60) // 1小时
+                        .build()
+        );
     }
 }

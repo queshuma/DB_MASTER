@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.util.Strings;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.shuzhi.Config.MINIOConfig;
@@ -19,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.Filter;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -55,16 +57,13 @@ public class RagFileService {
     }
 
     // todo 数据库存一份
-    // todo 向量数据库清除
-
-
 
     /**
      * 自动根据规则自动分词
      */
-    public List<DocumentParticiple.Block> autoParticiple(String context) {
+    public List<DocumentParticiple.Block> autoParticiple(String context, String rule) {
             // 按连续 2 个或更多换行符分割
-            String[] paragraphs = context.split("(\\r?\\n){2,}");
+            String[] paragraphs = context.split((rule == null || Strings.isBlank(rule)) ? "(\\r?\\n){2,}" : rule);
 
             StringBuffer documentContext = new StringBuffer();
             DocumentParticiple document = new DocumentParticiple();
@@ -73,7 +72,7 @@ public class RagFileService {
             for (Integer i = 0 ;i < paragraphs.length; i++) {
                 String para =  paragraphs[i];
                 String clean = para.trim(); // 去掉首尾空白
-                if (clean.endsWith("。") || clean.endsWith(".") || i == paragraphs.length - 1) {
+//                if (clean.endsWith("。") || clean.endsWith(".") || i == paragraphs.length - 1) {
                     documentContext.append(clean);
                     DocumentParticiple.Block block = new DocumentParticiple.Block();
                     block.setSortNum(index);
@@ -82,11 +81,11 @@ public class RagFileService {
                     logger.info("段落 " + index + " 添加成功");
                     documentContext = new StringBuffer();
                     index = index + 1;
-                } else {
-                    if (StringUtils.isNotBlank(clean)) {
-                        documentContext.append(clean);
-                    }
-                }
+//                } else {
+//                    if (StringUtils.isNotBlank(clean)) {
+//                        documentContext.append(clean);
+//                    }
+//                }
             }
 
         System.out.println("切分完毕，共 " + index + " 个句子");
@@ -110,18 +109,21 @@ public class RagFileService {
             contextMap.put("paragraphIndex", index);
         }
         vectorStore.add(documentList);
+        RagFileInfoPO ragFileInfoPO = ragFileInfoMapper.selectById(document.getId());
+        ragFileInfoPO.setSync(true);
+        ragFileInfoPO.setSyncDate(new Date());
+        ragFileInfoPO.setSyncCreatorId(sysUserUtils.getLoginUserInfo().getId());
+        ragFileInfoPO.setSyncCreatorId(sysUserUtils.getLoginUserInfo().getUsername());
+        ragFileInfoMapper.updateById(ragFileInfoPO);
+        logger.info(document.getId() + "文件转入向量文件库成功");
         System.out.println("切分完毕，共 " + documentList.size() + " 个段落快");
     }
 
+    // 废弃
     @Async
     public void syncRagFile(RagFile ragFile) throws Exception {
         try (PDDocument pdf = PDDocument.load(minIOUtils.getFileStream("db-master-rag-bucket", ragFile.fileName).getInputStream());
              ){
-//            PDFTextStripper stripper = new PDFTextStripper();
-//            stripper.setSortByPosition(true); // 按位置读取，避免顺序乱
-//            String text = stripper.getText(pdf);
-//            SentenceDetectorME sentenceDetector = new SentenceDetectorME(new SentenceModel(modelIn));
-
             Map<String, Object> contextMap = new HashMap<>();
             contextMap.put("id", ragFile.id);
             contextMap.put("paragraphIndex", 0);
@@ -165,13 +167,7 @@ public class RagFileService {
             }
             this.participleContent(document);
             System.out.println("切分完毕，共 " + index + " 个句子");
-            RagFileInfoPO ragFileInfoPO = ragFileInfoMapper.selectById(ragFile.id);
-            ragFileInfoPO.setSync(true);
-            ragFileInfoPO.setSyncDate(new Date());
-            ragFileInfoPO.setSyncCreatorId(sysUserUtils.getLoginUserInfo().getId());
-            ragFileInfoPO.setSyncCreatorId(sysUserUtils.getLoginUserInfo().getUsername());
-            ragFileInfoMapper.updateById(ragFileInfoPO);
-            logger.info(ragFile.fileInitialName + "文件转入向量文件库成功");
+
         } catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
         }
@@ -185,17 +181,31 @@ public class RagFileService {
             stripper.setSortByPosition(true);
 
             // 保留换行
-            stripper.setAddMoreFormatting(true);
+//            stripper.setAddMoreFormatting(true);
 
             // 设置换行符
-            stripper.setLineSeparator("\n");
-            stripper.setParagraphEnd("\n\n");
+//            stripper.setLineSeparator("\n");
+            stripper.setParagraphEnd("\n");
             return stripper.getText(pdf);
         } catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
             throw new RuntimeException(e);
         }
 //        return null;
+    }
+
+    public void cancelSyncRagFile(String documentId) {
+        Filter.Expression filterExpression = new Filter.Expression(
+                Filter.ExpressionType.EQ,
+                new Filter.Key("id"),
+                new Filter.Value(documentId)
+        );
+        vectorStore.delete(filterExpression);
+        RagFileInfoPO ragFileInfoPO = ragFileInfoMapper.selectById(documentId);
+        ragFileInfoPO.setSync(false);
+        ragFileInfoPO.setSyncDate(null);
+        ragFileInfoPO.setSyncCreatorId(null);
+        ragFileInfoMapper.updateById(ragFileInfoPO);
     }
 
     public record RagFile(String id, String fileName, String fileInitialName, String fileType, String fileSize, String filePath, Boolean sync) {

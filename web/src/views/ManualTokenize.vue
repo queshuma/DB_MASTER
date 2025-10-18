@@ -4,6 +4,7 @@ import { onMounted, ref, computed, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
 import link from '../link/Link';
+import { Input } from 'ant-design-vue';
 
 const route = useRoute();
 const fileName = ref('');
@@ -11,6 +12,7 @@ const sourceText = ref(''); // 左边框的文本
 const tokenizedItems = ref([]); // 右边框的分词项
 const markedHtml = ref(''); // 带标记的HTML内容
 const sourceTextBox = ref(null); // 左侧文本框的引用
+const tokenizeRule = ref('(\r?\n){2,}'); // 分词规则输入，默认使用空行作为分隔符
 
 // 组件挂载时获取传递的参数
 onMounted(async () => {
@@ -230,11 +232,41 @@ const handleTransferText = () => {
 // 处理左侧文本框内容变化
 const handleTextChange = () => {
   if (sourceTextBox.value) {
+    // 保存当前滚动位置
+    const scrollTop = sourceTextBox.value.scrollTop;
+    const scrollLeft = sourceTextBox.value.scrollLeft;
+    
+    // 获取当前选择范围
+    const selection = window.getSelection();
+    let range = null;
+    if (selection.rangeCount > 0) {
+      range = selection.getRangeAt(0).cloneRange();
+    }
+    
     // 获取纯文本内容
     const plainText = sourceTextBox.value.textContent;
     sourceText.value = plainText;
-    // 保存HTML内容（包括标记）
-    markedHtml.value = sourceTextBox.value.innerHTML;
+    
+    // 只有在有特殊标记时才更新HTML内容
+    // 这样可以避免简单文本编辑时不必要的DOM重新渲染
+    if (sourceTextBox.value.innerHTML.includes('<span class="tokenized-span"')) {
+      markedHtml.value = sourceTextBox.value.innerHTML;
+    }
+    
+    // 使用nextTick确保DOM更新后恢复滚动位置
+    nextTick(() => {
+      if (sourceTextBox.value) {
+        // 恢复滚动位置
+        sourceTextBox.value.scrollTop = scrollTop;
+        sourceTextBox.value.scrollLeft = scrollLeft;
+        
+        // 恢复选择范围
+        if (range && selection) {
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+      }
+    });
   }
 };
 
@@ -312,9 +344,10 @@ const handleAutoTokenize = async () => {
     // 清空现有的分词结果
     tokenizedItems.value = [];
     
-    // 使用link方法发送POST请求到自动分词API
+    // 使用link方法发送POST请求到自动分词API，包含分词规则
     const response = await link('/file/autoParticiple', 'post', {
-      context: text
+      context: text,
+      rule: tokenizeRule.value || undefined
     });
     
     // 检查响应是否包含blocks数组
@@ -356,6 +389,90 @@ const updateSourceTextWithHighlightedTokens = (blocks, colors) => {
   // 保持函数存在以确保其他代码调用不会出错
 };
 
+// 拖拽相关变量
+const draggedItemIndex = ref(null);
+
+// 处理拖拽开始
+const handleDragStart = (event, index) => {
+  draggedItemIndex.value = index;
+  event.dataTransfer.effectAllowed = 'move';
+  // 添加视觉反馈
+  event.target.classList.add('dragging');
+};
+
+// 处理拖拽经过
+const handleDragOver = (event) => {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  // 添加视觉反馈
+  event.target.classList.add('drag-over');
+};
+
+// 处理放置
+const handleDrop = (event, dropIndex) => {
+  event.preventDefault();
+  // 移除视觉反馈
+  event.target.classList.remove('drag-over');
+  
+  if (draggedItemIndex.value !== null && draggedItemIndex.value !== dropIndex) {
+    // 创建临时数组副本
+    const newTokenItems = [...tokenizedItems.value];
+    // 移除拖拽的项
+    const [draggedItem] = newTokenItems.splice(draggedItemIndex.value, 1);
+    // 插入到新位置
+    newTokenItems.splice(dropIndex, 0, draggedItem);
+    // 更新原始数组
+    tokenizedItems.value = newTokenItems;
+  }
+};
+
+// 处理拖拽结束
+const handleDragEnd = (event) => {
+  // 移除所有视觉反馈
+  document.querySelectorAll('.token-item.dragging, .token-item.drag-over').forEach(el => {
+    el.classList.remove('dragging', 'drag-over');
+  });
+  draggedItemIndex.value = null;
+};
+
+// 重新加载文件内容
+const reloadFileContent = async () => {
+  try {
+    message.loading('重新加载文件中...', 0);
+    
+    // 清空源文本和分词结果
+    sourceText.value = '';
+    markedHtml.value = '';
+    tokenizedItems.value = [];
+    
+    // 清空DOM内容
+    if (sourceTextBox.value) {
+      sourceTextBox.value.textContent = '';
+      sourceTextBox.value.innerHTML = '';
+    }
+    
+    // 等待DOM更新
+    await nextTick();
+    
+    // 如果有文件名，则重新加载文件内容
+    if (fileName.value) {
+      await fetchFileContent(fileName.value);
+      message.destroy();
+      message.success('文件重新加载成功');
+    } else {
+      // 如果没有文件名，则使用默认内容
+      setDefaultContent();
+      message.destroy();
+      message.success('默认内容已加载');
+    }
+  } catch (error) {
+    console.error('重新加载文件失败:', error);
+    message.destroy();
+    message.error('重新加载失败，请稍后重试');
+    setDefaultContent();
+  }
+};
+
 // 发布分词内容
 const publishTokenizedContent = async () => {
   if (tokenizedItems.value.length === 0) {
@@ -366,7 +483,7 @@ const publishTokenizedContent = async () => {
   try {
     // 构建请求体
     const requestBody = {
-      id: Date.now().toString(), // 使用时间戳作为临时ID
+      id: route.query.documentId, // 使用路由传递的documentId，若未传递则使用时间戳作为临时ID
       blocks: tokenizedItems.value.map((item, index) => ({
         id: `${Date.now()}_${index}`, // 为每个block生成唯一ID
         sortNum: index + 1, // 排序编号从1开始
@@ -377,11 +494,7 @@ const publishTokenizedContent = async () => {
     // 发送POST请求
     const response = await link('/file/participleContent', 'post', requestBody);
     
-    if (response.status === 200) {
-      message.success('发布成功');
-    } else {
-      message.error('发布失败，请稍后重试');
-    }
+    message.success('发布成功');
   } catch (error) {
     console.error('发布请求失败:', error);
     message.error('发布请求失败，请检查网络连接或稍后重试');
@@ -408,11 +521,20 @@ const publishTokenizedContent = async () => {
       
       <!-- 中间的转移按钮 -->
       <div class="transfer-controls">
+        <div style="margin-bottom: 5px; text-align: center;">分词规则</div>
+        <Input
+          v-model:value="tokenizeRule"
+          placeholder="输入分词规则"
+          style="width: 160px; margin-bottom: 10px;"
+        />
         <Button type="primary" @click="handleTransferText">
-          &gt;&gt;
+          添加数据
         </Button>
         <Button @click="handleAutoTokenize">
           自动分词
+        </Button>
+        <Button @click="reloadFileContent">
+          重新加载
         </Button>
         <Button type="primary" class="publish-btn" @click="publishTokenizedContent">
           发布
@@ -428,9 +550,14 @@ const publishTokenizedContent = async () => {
         <div class="tokenized-box">
           <div 
             v-for="(item, index) in tokenizedItems" 
-            :key="index" 
+            :key="`${index}-${item.text.slice(0, 10)}`" 
             class="token-item" 
             :style="{ backgroundColor: item.color }"
+            draggable="true"
+            @dragstart="handleDragStart($event, index)"
+            @dragover.prevent="handleDragOver($event)"
+            @drop="handleDrop($event, index)"
+            @dragend="handleDragEnd"
           >
             <span class="token-index">{{ index + 1 }}.</span> 
             <span class="token-text">{{ item.text }}</span>
@@ -495,6 +622,14 @@ const publishTokenizedContent = async () => {
   max-height: 100%;
   border: 1px solid #d9d9d9;
   border-radius: 4px;
+  width: 0; /* 触发flexbox的平等分配 */
+}
+
+/* 确保左右两个容器宽度完全一致 */
+.left-container,
+.right-container {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .container-header {
@@ -667,6 +802,28 @@ const publishTokenizedContent = async () => {
 .token-item:hover {
   opacity: 0.8;
   transform: translateY(-2px);
+}
+
+/* 拖拽过程的视觉反馈 */
+.token-item.dragging {
+  opacity: 0.5;
+  transform: scale(1.05);
+  cursor: grabbing;
+}
+
+.token-item.drag-over {
+  border: 2px dashed #0078d7;
+  background-color: rgba(0, 120, 215, 0.15);
+  cursor: grabbing;
+}
+
+/* 确保拖拽时光标显示一致 */
+.token-item {
+  cursor: grab;
+}
+
+.token-item:active {
+  cursor: grabbing;
 }
 
 /* 响应式调整 */

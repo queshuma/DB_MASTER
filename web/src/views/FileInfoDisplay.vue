@@ -41,7 +41,7 @@ const fetchFileList = async () => {
         id: file.id,
         name: file.fileName,
         initialName: file.fileInitialName,
-        size: file.fileSize || '未知大小',
+        size: ((file.fileSize || 0) / 8 / 1024).toFixed(1)  + ' B',
         type: file.fileType || 'document',
         path: file.filePath || '',
         // 处理同步状态字段
@@ -83,15 +83,35 @@ const searchFiles = () => {
   );
 };
 
-// 预览文件内容 - 直接在新页面打开
-const previewFile = (record) => {
-  if (record && record.path) {
-    // 在新标签页中打开文件地址
-    window.open(record.path, '_blank');
-    message.success(`正在打开文件预览: ${record.name}`);
-  } else {
-    message.error('文件路径不存在，无法预览');
-    console.warn('文件路径不存在:', record);
+// 预览文件内容 - 先调用接口获取预览URL，再在新页面打开
+const previewFile = async (record) => {
+  if (!record || !record.name) {
+    message.error('文件信息不完整，无法预览');
+    console.warn('文件信息不完整:', record);
+    return;
+  }
+  
+  try {
+    message.loading(`正在获取文件预览链接: ${record.name}`, 0);
+    
+    // 调用接口获取预览URL，使用GET方法并通过params传递文件名
+    const response = await link('/file/preview/url', 'get', {}, { fileName: record.name }, {}, true);
+    
+    message.destroy();
+    
+    if (response) {
+      // 在新标签页中打开预览URL
+      console.log('预览URL:', response);  
+      window.open(response, '_blank');
+      message.success(`正在打开文件预览: ${record.name}`);
+    } else {
+      message.error('获取预览链接失败，返回数据格式不正确');
+      console.warn('获取预览链接失败，返回数据:', response);
+    }
+  } catch (error) {
+    message.destroy();
+    message.error('获取预览链接失败，请稍后重试');
+    console.error('获取预览链接出错:', error);
   }
 };
 
@@ -216,8 +236,8 @@ const manualTokenize = async (record) => {
     router.push({
       path: '/manual-tokenize',
       query: {
+        documentId: record.id,
         fileName: record.name,
-        fileContent: encodeURIComponent(fileContent)
       }
     });
   } catch (error) {
@@ -236,10 +256,8 @@ const cancelSyncFile = async (record) => {
     onOk: async () => {
       try {
         loading.value = true;
-        // 模拟API请求延迟
-        await new Promise(resolve => setTimeout(resolve, 300));
-        // 在实际项目中，这里应该调用后端API取消同步
-        // await link('/file/cancelSyncRagFile', 'post', { fileId: record.id });
+        // 调用后端API取消同步，使用GET请求并提供documentId参数
+        await link('/file/cancelSyncRagFile', 'get', {}, { documentId: record.id }, {}, true);
         
         // 更新本地文件的同步状态
         const updatedFile = fileList.value.find(f => f.id === record.id);
@@ -291,12 +309,7 @@ const columns = [
     key: 'size',
     width: 100
   },
-  {
-    title: '路径',
-    dataIndex: 'path',
-    key: 'path',
-    ellipsis: true
-  },
+
   {
     title: '最后修改',
     dataIndex: 'lastModified',
@@ -433,15 +446,9 @@ onMounted(() => {
             </Button>
             <!-- 手动分词按钮 -->
             <Button size="small" type="default" @click="() => manualTokenize(record)">
-              手动分词
+              分词
             </Button>
-            <!-- 根据同步状态显示不同的按钮 -->
-            <Button v-if="!record.sync" size="small" type="default" @click="() => syncFile(record)">
-              同步
-            </Button>
-            <Button v-else size="small" type="default" danger @click="() => cancelSyncFile(record)">
-              取消同步
-            </Button>
+            <Button size="small" @click="() => cancelSyncFile(record)" :disabled="!record.sync">取消同步</Button>
             <Button size="small" danger @click="() => deleteFile(record)">删除</Button>
           </Space>
         </template>
