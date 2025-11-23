@@ -3,11 +3,11 @@ import axios from 'axios';
 /**
  * 线上环境
  */
-// const baseURL = '/api';
+const baseURL = '/api';
 /**
  * 本地环境
  */
-const baseURL = 'http://localhost:8000';
+// const baseURL = 'http://localhost:8000';
 
 
 // 创建axios实例
