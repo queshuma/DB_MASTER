@@ -1,5 +1,5 @@
 # 指定基础镜像
-FROM registry.cn-hangzhou.aliyuncs.com/library/openjdk:17
+FROM openjdk:17
 
 # 设置工作目录
 WORKDIR /web
