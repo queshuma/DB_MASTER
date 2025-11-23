@@ -1,5 +1,5 @@
 # 指定基础镜像
-FROM openjdk:17
+FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openjdk:17.0.2-slim-linuxarm64
 
 # 设置工作目录
 WORKDIR /web
